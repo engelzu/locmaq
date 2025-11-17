@@ -4,7 +4,8 @@ const apiKey = '435bf07fb6d444f8a0ca1af6906f1bce';
 // ======================================================
 // INICIALIZAÇÃO DO APPWRITE
 // ======================================================
-const { Client, Account, ID, Databases, Storage, Query } = Appwrite;
+// CORREÇÃO 1: Adicionamos 'Permission' e 'Role'
+const { Client, Account, ID, Databases, Storage, Query, Permission, Role } = Appwrite;
 
 const client = new Client();
 client
@@ -18,14 +19,8 @@ const storage = new Storage(client);
 // IDs que você configurou no Appwrite
 const DB_ID = '6917721d002bc00da375';
 const USERS_COLLECTION_ID = 'users';
-const RENTERS_COLLECTION_ID = 'locations'; // Corrigido anteriormente
-
-// ======================================================
-// CORREÇÃO DESTE ERRO: O ID da sua coleção é 'products'
-// ======================================================
+const RENTERS_COLLECTION_ID = 'locations';
 const EQUIPMENT_COLLECTION_ID = 'products';
-// ======================================================
-
 const BUCKET_ID = 'product-images';
 
 // Variáveis de sessão globais
@@ -499,6 +494,9 @@ async function loadEquipmentList() {
     }
 }
 
+// ======================================================
+// CORREÇÃO 2: Adicionamos permissões ao criar o arquivo
+// ======================================================
 async function saveEquipment(event) {
     event.preventDefault();
     const renter = currentSession.profile;
@@ -514,7 +512,20 @@ async function saveEquipment(event) {
 
     try {
         if (imageFile) {
-            const uploadedFile = await storage.createFile(BUCKET_ID, ID.unique(), imageFile);
+            // Define as permissões: qualquer um pode ler, o usuário logado pode alterar/excluir
+            const filePermissions = [
+                Permission.read(Role.any()), // <-- ISSO É O MAIS IMPORTANTE
+                Permission.update(Role.user(currentSession.account.$id)),
+                Permission.delete(Role.user(currentSession.account.$id))
+            ];
+            
+            const uploadedFile = await storage.createFile(
+                BUCKET_ID, 
+                ID.unique(), 
+                imageFile, 
+                filePermissions // <-- Adicionamos as permissões aqui
+            );
+            
             const result = storage.getFilePreview(BUCKET_ID, uploadedFile.$id);
             imageUrl = result.href; 
         }
@@ -557,6 +568,9 @@ async function saveEquipment(event) {
         showAlert(`Erro ao salvar: ${error.message}`);
     }
 }
+// ======================================================
+// FIM DA CORREÇÃO
+// ======================================================
 
 async function editEquipment(docId) {
     try {
