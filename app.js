@@ -540,7 +540,7 @@ async function saveEquipment(event) {
                 filePermissions // <-- Adiciona as permissões aqui
             );
             
-            const result = storage.getFilePreview(BUCKET_ID, uploadedFile.$id);
+            const result = storage.getFileView(BUCKET_ID, uploadedFile.$id);
             imageUrl = result.href; 
         }
 
@@ -1017,3 +1017,4 @@ async function loadCities(state, selectId) {
         select.innerHTML = '<option value="">Erro ao carregar cidades</option>';
     }
 }
+
