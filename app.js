@@ -18,7 +18,13 @@ const storage = new Storage(client);
 // IDs que você configurou no Appwrite
 const DB_ID = '6917721d002bc00da375';
 const USERS_COLLECTION_ID = 'users';
-const RENTERS_COLLECTION_ID = 'renters';
+
+// ======================================================
+// CORREÇÃO: O ID da sua coleção é 'locations' e não 'renters'
+// ======================================================
+const RENTERS_COLLECTION_ID = 'locations';
+// ======================================================
+
 const EQUIPMENT_COLLECTION_ID = 'equipment';
 const BUCKET_ID = 'product-images';
 
@@ -208,6 +214,7 @@ async function renterRegister(event) {
             plan: 'free',
             renterId: authUser.$id
         };
+        // Tenta criar o documento na coleção (agora com o ID 'locations')
         await databases.createDocument(DB_ID, RENTERS_COLLECTION_ID, authUser.$id, renterData);
         
         await account.createEmailSession(email, password);
@@ -218,6 +225,16 @@ async function renterRegister(event) {
     } catch (error) {
         console.error("Erro no cadastro de locador:", error);
         showAlert(`Erro no cadastro: ${error.message}`);
+        
+        // Se o cadastro no DB falhou, mas no Auth funcionou, deleta o usuário do Auth
+        // para permitir que o usuário tente novamente (evita o erro "usuário já existe")
+        const user = await account.get().catch(() => null);
+        if (user && user.email === email) {
+            await account.deleteSession('current');
+            await account.delete(user.$id);
+            console.log("Usuário 'fantasma' do Auth foi limpo.");
+            showAlert("Ocorreu um erro no DB, mas o usuário 'fantasma' do Auth foi limpo. Tente novamente.");
+        }
     }
 }
 
@@ -268,7 +285,6 @@ async function recoverPassword(event, type) {
         : document.getElementById('recover-renter-email').value;
 
     try {
-        // Pega a URL atual para o link de reset
         const resetUrl = window.location.origin + window.location.pathname; 
         
         await account.createRecovery(email, resetUrl);
@@ -795,13 +811,9 @@ async function searchAddress(query, listId) {
     list.classList.add('show');
 
     try {
-        // ======================================================
-        // CORREÇÃO DO ERRO 'httpshttps'
-        // ======================================================
         const response = await fetch(
             `https://api.geoapify.com/v1/geocode/autocomplete?text=${encodeURIComponent(query)}&lang=pt&limit=5&filter=countrycode:br&apiKey=${apiKey}`
         );
-        // ======================================================
         
         const data = await response.json();
         
