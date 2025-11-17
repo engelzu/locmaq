@@ -18,14 +18,14 @@ const storage = new Storage(client);
 // IDs que você configurou no Appwrite
 const DB_ID = '6917721d002bc00da375';
 const USERS_COLLECTION_ID = 'users';
+const RENTERS_COLLECTION_ID = 'locations'; // Corrigido anteriormente
 
 // ======================================================
-// CORREÇÃO: O ID da sua coleção é 'locations' e não 'renters'
+// CORREÇÃO DESTE ERRO: O ID da sua coleção é 'products'
 // ======================================================
-const RENTERS_COLLECTION_ID = 'locations';
-// ======================================================
-
 const EQUIPMENT_COLLECTION_ID = 'products';
+// ======================================================
+
 const BUCKET_ID = 'product-images';
 
 // Variáveis de sessão globais
@@ -214,7 +214,6 @@ async function renterRegister(event) {
             plan: 'free',
             renterId: authUser.$id
         };
-        // Tenta criar o documento na coleção (agora com o ID 'locations')
         await databases.createDocument(DB_ID, RENTERS_COLLECTION_ID, authUser.$id, renterData);
         
         await account.createEmailSession(email, password);
@@ -226,8 +225,6 @@ async function renterRegister(event) {
         console.error("Erro no cadastro de locador:", error);
         showAlert(`Erro no cadastro: ${error.message}`);
         
-        // Se o cadastro no DB falhou, mas no Auth funcionou, deleta o usuário do Auth
-        // para permitir que o usuário tente novamente (evita o erro "usuário já existe")
         const user = await account.get().catch(() => null);
         if (user && user.email === email) {
             await account.deleteSession('current');
@@ -967,4 +964,3 @@ async function loadCities(state, selectId) {
         select.innerHTML = '<option value="">Erro ao carregar cidades</option>';
     }
 }
-
