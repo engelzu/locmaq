@@ -117,15 +117,13 @@ function showScreen(screenId) {
     }
 
     // ======================================================
-    // CORREÇÃO 3 (MAPA): Força o mapa a recarregar o tamanho
+    // CORREÇÃO DO MAPA (Para o mapa cinza)
     // ======================================================
     if (screenId === 'user-dashboard' && map) {
         setTimeout(() => {
             map.invalidateSize();
-        }, 100); // Um pequeno atraso para garantir que o CSS foi renderizado
+        }, 100); 
     }
-    // ======================================================
-    // FIM DA CORREÇÃO
     // ======================================================
 }
 
@@ -689,17 +687,15 @@ function initializeMap() {
     }
 }
 
-// ======================================================
-// CORREÇÃO 3 (MAPA): Código do 'invalidateSize' movido para
-// a função 'showScreen' para garantir que execute no momento certo.
-// ======================================================
 async function searchRenters(event) {
     event.preventDefault();
     initializeMap();
     
+    // O 'invalidateSize' foi movido para a função 'showScreen'
+    
     await populateEquipmentDropdown(); 
     
-    showScreen('user-dashboard'); // <-- O 'invalidateSize' agora roda DENTRO desta função
+    showScreen('user-dashboard');
     
     document.getElementById('equipment-results').innerHTML = `<div class="empty-state"><p>Selecione um equipamento e clique em 'Pesquisar'.</p></div>`;
     markersLayer.clearLayers();
@@ -743,7 +739,6 @@ async function populateEquipmentDropdown() {
     }
 }
 
-// CORREÇÃO: Adiciona verificação de 'lat' e 'lng' antes de criar marcador
 async function searchEquipment() {
     const state = document.getElementById('user-state-select').value;
     const city = document.getElementById('user-city-select').value;
@@ -807,7 +802,6 @@ async function searchEquipment() {
         if (bounds.length > 0) {
             map.fitBounds(bounds, { padding: [50, 50] });
         } else {
-            // Se nenhum equipamento tinha coordenadas, centraliza o mapa no Brasil
             map.setView([-15.78, -47.92], 4);
         }
         
