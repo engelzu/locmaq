@@ -115,6 +115,18 @@ function showScreen(screenId) {
     } else {
         console.error(`Erro: Tela com ID '${screenId}' não encontrada.`);
     }
+
+    // ======================================================
+    // CORREÇÃO 3 (MAPA): Força o mapa a recarregar o tamanho
+    // ======================================================
+    if (screenId === 'user-dashboard' && map) {
+        setTimeout(() => {
+            map.invalidateSize();
+        }, 100); // Um pequeno atraso para garantir que o CSS foi renderizado
+    }
+    // ======================================================
+    // FIM DA CORREÇÃO
+    // ======================================================
 }
 
 function showAlert(message, type = 'error') {
@@ -486,7 +498,6 @@ async function loadEquipmentList() {
     }
 }
 
-// NOVA FUNÇÃO (para limpar o form SÓ ao adicionar)
 function prepareAddEquipmentForm() {
     const form = document.getElementById('add-equipment').querySelector('form');
     if(form) form.reset();
@@ -513,7 +524,6 @@ async function saveEquipment(event) {
 
     try {
         if (imageFile) {
-            // Permissão para "Qualquer um" (Any) "Ler" (Read)
             const filePermissions = [
                 Permission.read(Role.any())
             ];
@@ -525,7 +535,6 @@ async function saveEquipment(event) {
                 filePermissions 
             );
             
-            // CORREÇÃO: Usar getFileView para um link público e permanente
             const result = storage.getFileView(BUCKET_ID, uploadedFile.$id);
             imageUrl = result.href; 
         }
@@ -572,7 +581,6 @@ async function saveEquipment(event) {
     }
 }
 
-// CORREÇÃO: Esta função agora funciona
 async function editEquipment(docId) {
     try {
         const eq = await databases.getDocument(DB_ID, EQUIPMENT_COLLECTION_ID, docId);
@@ -590,7 +598,7 @@ async function editEquipment(docId) {
             preview.innerHTML = `<img src="${eq.imageUrl}" alt="Prévia">`;
         }
         
-        showScreen('add-equipment'); // Agora a tela é mostrada com os dados
+        showScreen('add-equipment'); 
 
     } catch (error) {
         console.error("Erro ao buscar equipamento para editar:", error);
@@ -681,21 +689,17 @@ function initializeMap() {
     }
 }
 
-// CORREÇÃO: Adiciona 'map.invalidateSize()' para consertar mapa cinza
+// ======================================================
+// CORREÇÃO 3 (MAPA): Código do 'invalidateSize' movido para
+// a função 'showScreen' para garantir que execute no momento certo.
+// ======================================================
 async function searchRenters(event) {
     event.preventDefault();
     initializeMap();
     
-    // Força o Leaflet a recalcular o tamanho do mapa
-    setTimeout(() => {
-        if (map) {
-            map.invalidateSize();
-        }
-    }, 100); 
-    
     await populateEquipmentDropdown(); 
     
-    showScreen('user-dashboard');
+    showScreen('user-dashboard'); // <-- O 'invalidateSize' agora roda DENTRO desta função
     
     document.getElementById('equipment-results').innerHTML = `<div class="empty-state"><p>Selecione um equipamento e clique em 'Pesquisar'.</p></div>`;
     markersLayer.clearLayers();
@@ -803,6 +807,7 @@ async function searchEquipment() {
         if (bounds.length > 0) {
             map.fitBounds(bounds, { padding: [50, 50] });
         } else {
+            // Se nenhum equipamento tinha coordenadas, centraliza o mapa no Brasil
             map.setView([-15.78, -47.92], 4);
         }
         
@@ -824,7 +829,6 @@ async function contactRenter(renterId) {
 
 
 // --- GEOAPIFY E LOCALIZAÇÃO (MÉTODO MANUAL) ---
-// (Esta seção está correta e não foi alterada)
 
 let debounceTimer; 
 
