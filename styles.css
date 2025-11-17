@@ -31,9 +31,32 @@ body {
     box-shadow: var(--shadow-lg);
 }
 
-.logo { text-align: center; margin-bottom: 40px; }
-.logo h1 { font-size: 3em; color: var(--primary-color); margin-bottom: 10px; text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);}
-.logo p { color: var(--gray); font-size: 1.1em; }
+/* ====================================================== */
+/* CÓDIGO ATUALIZADO PARA O LOGO                          */
+/* ====================================================== */
+.logo {
+    text-align: center; 
+    margin-bottom: 30px; 
+}
+.logo-img {
+    width: 150px; 
+    height: auto;
+    margin-bottom: 15px; 
+    border-radius: 10px; 
+}
+.logo h1 { 
+    font-size: 3em; 
+    color: var(--primary-color); 
+    margin-bottom: 10px; 
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+}
+.logo p { 
+    color: var(--gray); 
+    font-size: 1.1em; 
+}
+/* ====================================================== */
+/* FIM DO CÓDIGO DO LOGO                                  */
+/* ====================================================== */
 
 .button-group { display: flex; flex-direction: column; gap: 20px; }
 .btn {
