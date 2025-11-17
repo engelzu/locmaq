@@ -25,7 +25,7 @@ const USERS_COLLECTION_ID = 'users';
 const RENTERS_COLLECTION_ID = 'locations';
 // ======================================================
 
-const EQUIPMENT_COLLECTION_ID = 'equipment';
+const EQUIPMENT_COLLECTION_ID = 'products';
 const BUCKET_ID = 'product-images';
 
 // Variáveis de sessão globais
@@ -967,3 +967,4 @@ async function loadCities(state, selectId) {
         select.innerHTML = '<option value="">Erro ao carregar cidades</option>';
     }
 }
+
