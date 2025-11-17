@@ -1,0 +1,235 @@
+:root {
+    --primary-color: #FF6B35;
+    --secondary-color: #004E89;
+    --accent-color: #F77F00;
+    --success-color: #06D6A0;
+    --danger-color: #EF476F;
+    --dark: #1A1A2E;
+    --light: #F8F9FA;
+    --gray: #6C757D;
+    --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.15);
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    padding: 20px;
+}
+
+.screen { display: none; }
+.screen.active { display: block; animation: fadeIn 0.3s ease-in; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+.container {
+    max-width: 600px;
+    margin: 0 auto;
+    background: white;
+    border-radius: 20px;
+    padding: 30px;
+    box-shadow: var(--shadow-lg);
+}
+
+.logo { text-align: center; margin-bottom: 40px; }
+.logo h1 { font-size: 3em; color: var(--primary-color); margin-bottom: 10px; text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);}
+.logo p { color: var(--gray); font-size: 1.1em; }
+
+.button-group { display: flex; flex-direction: column; gap: 20px; }
+.btn {
+    width: 100%; padding: 18px; border: none; border-radius: 12px; font-size: 1.1em;
+    font-weight: 600; cursor: pointer; transition: all 0.3s ease; box-shadow: var(--shadow);
+}
+.btn:hover { transform: translateY(-2px); box-shadow: var(--shadow-lg);}
+.btn-primary { background: linear-gradient(135deg, var(--primary-color), var(--accent-color)); color: white;}
+.btn-secondary { background: linear-gradient(135deg, var(--secondary-color), #0077B6); color: white;}
+.btn-danger { background: var(--danger-color); color: white; margin-top: 20px;}
+.btn-upgrade { background: linear-gradient(135deg, #FFD700, #FFA500); color: var(--dark); margin-top: 20px;}
+.btn-back {
+    background: transparent; border: none; color: var(--secondary-color); font-size: 1em; cursor: pointer;
+    margin-bottom: 20px; padding: 10px; text-align: left; font-weight: 600;
+}
+.btn-icon { background: var(--light); border: none; font-size: 1.5em; padding: 10px 15px; border-radius: 10px; cursor: pointer; }
+.icon { font-size: 1.5em; margin-right: 10px;}
+
+form { display: flex; flex-direction: column; gap: 15px; margin-top: 20px; }
+input, textarea, select {
+    width: 100%; padding: 15px; border: 2px solid #E0E0E0; border-radius: 10px; font-size: 1em; transition: border 0.3s ease;
+    box-sizing: border-box; 
+}
+input:focus, textarea:focus, select:focus { outline: none; border-color: var(--primary-color);}
+textarea { resize: vertical; min-height: 100px; }
+
+
+/* Estilos para o Autocomplete Manual */
+.autocomplete-container {
+    position: relative;
+}
+
+.autocomplete-list {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: #ffffff; 
+    border: 2px solid var(--primary-color); 
+    border-top: none;
+    border-radius: 0 0 0.5rem 0.5rem; 
+    max-height: 200px; 
+    overflow-y: auto;
+    z-index: 1050; 
+    display: none;
+    box-shadow: var(--shadow);
+}
+
+.autocomplete-list.show {
+    display: block;
+}
+
+.autocomplete-item {
+    padding: 10px 12px;
+    cursor: pointer;
+    border-bottom: 1px solid #E0E0E0; 
+    color: var(--dark) !important; 
+    transition: background-color 0.2s ease;
+}
+
+.autocomplete-item:last-child {
+    border-bottom: none;
+}
+
+.autocomplete-item:hover {
+    background-color: var(--light); 
+}
+
+.autocomplete-item strong {
+    color: var(--primary-color); 
+}
+
+.loading, .no-results {
+    padding: 10px 12px;
+    text-align: center;
+    color: var(--gray); 
+    font-style: italic;
+}
+/* Fim dos estilos do Autocomplete */
+
+
+.links { display: flex; justify-content: space-between; margin-top: 20px; }
+.links a { color: var(--secondary-color); text-decoration: none; font-size: 0.9em; }
+.links a:hover { text-decoration: underline; }
+
+.header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+.header h2 { color: var(--dark); }
+
+.search-box { display: flex; gap: 10px; margin-bottom: 20px; }
+.search-box select { flex: 1; } /* Ajustado para select */
+.search-box button { padding: 15px 25px; }
+
+.results-container { display: grid; gap: 15px; margin-top: 20px;}
+.result-card {
+    background: var(--light); padding: 20px; border-radius: 12px; box-shadow: var(--shadow); transition: transform 0.3s ease;
+}
+.result-card:hover { transform: translateY(-5px);}
+.result-card img { width: 100%; height: 200px; object-fit: cover; border-radius: 8px; margin-bottom: 15px; }
+.result-card h3 { color: var(--dark); margin-bottom: 10px;}
+.result-card p { color: var(--gray); margin-bottom: 8px;}
+.result-card .price { color: var(--primary-color); font-size: 1.5em; font-weight: 700; }
+.result-card .contact-btn { margin-top: 15px; }
+
+.equipment-list { display: grid; gap: 15px; margin-top: 20px; }
+.equipment-card {
+    background: var(--light); padding: 15px; border-radius: 12px; display: flex; gap: 15px; box-shadow: var(--shadow);
+}
+.equipment-card img { width: 120px; height: 120px; object-fit: cover; border-radius: 8px;}
+.equipment-info { flex: 1;}
+.equipment-info h4 { color: var(--dark); margin-bottom: 5px;}
+.equipment-info p { color: var(--gray); font-size: 0.9em; margin-bottom: 5px;}
+.equipment-actions { display: flex; gap: 10px; margin-top: 10px;}
+.equipment-actions button { padding: 8px 15px; border: none; border-radius: 8px; cursor: pointer; font-size: 0.9em; }
+.edit-btn { background: var(--secondary-color); color: white;}
+.delete-btn { background: var(--danger-color); color: white;}
+
+.plan-info {
+    background: linear-gradient(135deg, var(--secondary-color), #0077B6);
+    color: white; padding: 20px; border-radius: 12px; margin-bottom: 20px; text-align: center;
+}
+.plan-info h3 { margin-bottom: 10px;}
+.plan-info p { font-size: 0.9em; }
+.plans-container { display: grid; gap: 20px; margin-top: 20px;}
+.plan-card {
+    background: var(--light); padding: 25px; border-radius: 15px; text-align: center; box-shadow: var(--shadow);
+    transition: transform 0.3s ease;
+}
+.plan-card:hover { transform: translateY(-5px);}
+.plan-card.featured { background: linear-gradient(135deg, #FFF8E7, #FFEDD5); border: 3px solid var(--accent-color);}
+.plan-card h3 { color: var(--dark); font-size: 1.5em; margin-bottom: 15px;}
+.plan-card .price { font-size: 2.5em; color: var(--primary-color); font-weight: 700; margin-bottom: 20px;}
+.plan-card .price span { font-size: 0.4em; color: var(--gray);}
+.plan-card ul { list-style: none; margin-bottom: 20px;}
+.plan-card ul li { padding: 10px; color: var(--dark);}
+.plan-card ul li::before { content: "✓ "; color: var(--success-color); font-weight: 700; margin-right: 8px; }
+
+#image-preview { margin-top: 15px; }
+#image-preview img { width: 100%; max-height: 300px; object-fit: cover; border-radius: 10px;}
+
+#map { border-radius: 12px; overflow: hidden; box-shadow: var(--shadow); }
+
+#global-alert {
+    display: none;
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    max-width: 600px;
+    width: 90%;
+    padding: 15px; 
+    border-radius: 10px; 
+    font-weight: 500;
+    z-index: 2000;
+    box-shadow: var(--shadow-lg);
+    text-align: center;
+}
+.alert-success {
+    background: #D1FAE5; color: #065F46; border: 1px solid var(--success-color);
+}
+.alert-error {
+    background: #FEE2E2; color: #991B1B; border: 1px solid var(--danger-color);
+}
+.alert-warning {
+    background: #FEF3C7; color: #92400E; border: 1px solid var(--accent-color);
+}
+
+@media (max-width: 768px) {
+    body { padding: 10px; }
+    .container { padding: 20px; }
+    .logo h1 { font-size: 2em; }
+    .plans-container { grid-template-columns: 1fr; }
+    .equipment-card { flex-direction: column; }
+    .equipment-card img { width: 100%; }
+}
+
+.spinner {
+    border: 4px solid var(--light);
+    border-top: 4px solid var(--primary-color);
+    border-radius: 50%; width: 40px; height: 40px;
+    animation: spin 1s linear infinite; margin: 20px auto;
+}
+@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+.empty-state {
+    text-align: center; padding: 40px; color: var(--gray);
+}
+.empty-state p { font-size: 1.1em; }
+
+.badge {
+    display: inline-block; padding: 5px 10px; border-radius: 20px; font-size: 0.8em; font-weight: 600; margin-left: 10px;
+}
+.badge-free { background: var(--gray); color: white;}
+.badge-basic { background: var(--accent-color); color: white;}
+.badge-premium { background: var(--primary-color); color: white;}
+
+.restriction-notice {
+    background: #FEF3C7; border: 2px solid var(--accent-color); padding: 15px;
+    border-radius: 10px; margin-top: 10px; font-size: 0.9em; color: var(--dark);
+}

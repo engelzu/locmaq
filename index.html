@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>LocaMaq - Locação de Máquinas</title>
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+</head>
+<body>
+    <div id="global-alert" role="alert"></div>
+
+    <div id="home-screen" class="screen active">
+        <div class="container">
+            <div class="logo">
+                <h1>LocaMaq</h1>
+                <p>Locação de Máquinas e Equipamentos</p>
+            </div>
+            <div class="button-group">
+                <button class="btn btn-primary" onclick="showScreen('user-login')">
+                    <span class="icon">👤</span> Sou Usuário
+                </button>
+                <button class="btn btn-secondary" onclick="showScreen('renter-login')">
+                    <span class="icon">🏢</span> Sou Locador
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="user-login" class="screen">
+        <div class="container">
+            <button class="btn-back" onclick="showScreen('home-screen')">← Voltar</button>
+            <h2>Login do Usuário</h2>
+            <form onsubmit="userLogin(event)">
+                <input type="email" id="user-email" placeholder="E-mail" required />
+                <input type="password" id="user-password" placeholder="Senha" required />
+                <button type="submit" class="btn btn-primary">Entrar</button>
+            </form>
+            <div class="links">
+                <a href="#" onclick="showScreen('user-register')">Criar conta</a>
+                <a href="#" onclick="showScreen('user-forgot-password')">Esqueci minha senha</a>
+            </div>
+        </div>
+    </div>
+
+    <div id="user-register" class="screen">
+        <div class="container">
+            <button class="btn-back" onclick="showScreen('user-login')">← Voltar</button>
+            <h2>Cadastro de Usuário</h2>
+            <form onsubmit="userRegister(event)">
+                <input type="text" id="reg-user-name" placeholder="Nome Completo" required />
+                <input type="tel" id="reg-user-phone" placeholder="Telefone" required />
+                
+                <div class="autocomplete-container">
+                    <input
+                        type="text"
+                        id="reg-user-street"
+                        placeholder="Comece a digitar sua Rua..."
+                        autocomplete="off"
+                        oninput="handleAddressInput(event, 'reg-user-streetList')"
+                        required
+                    />
+                    <div class="autocomplete-list" id="reg-user-streetList"></div>
+                </div>
+                
+                <input type="text" id="reg-user-neighborhood" placeholder="Bairro" readonly />
+                <input type="text" id="reg-user-city" placeholder="Cidade" readonly />
+                <input type="text" id="reg-user-state" placeholder="Estado" readonly />
+                
+                <input type="email" id="reg-user-email" placeholder="E-mail" required />
+                <input type="password" id="reg-user-password" placeholder="Senha" required />
+                <input
+                    type="password"
+                    id="reg-user-confirm-password"
+                    placeholder="Confirmar Senha"
+                    required
+                />
+                <button type="submit" class="btn btn-primary">Cadastrar</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="user-forgot-password" class="screen">
+        <div class="container">
+            <button class="btn-back" onclick="showScreen('user-login')">← Voltar</button>
+            <h2>Recuperar Senha</h2>
+            <form onsubmit="recoverPassword(event, 'user')">
+                <input type="email" id="recover-user-email" placeholder="E-mail cadastrado" required />
+                <button type="submit" class="btn btn-primary">Enviar nova senha</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="user-location-select" class="screen">
+        <div class="container">
+            <button class="btn-back" onclick="logout()">← Sair</button>
+            <h2>Selecione sua Localização</h2>
+            <form onsubmit="searchRenters(event)">
+                <select id="user-state-select" required onchange="loadCities(this.value, 'user-city-select')">
+                    <option value="">Selecione o Estado</option>
+                </select>
+                <select id="user-city-select" required>
+                    <option value="">Selecione a Cidade</option>
+                </select>
+                <button type="submit" class="btn btn-primary">Buscar Locadores</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="user-dashboard" class="screen">
+        <div class="container">
+            <div class="header">
+                <h2>Buscar Equipamentos</h2>
+                <button class="btn-icon" onclick="showScreen('user-profile')">⚙️</button>
+            </div>
+            
+            <div class="search-box">
+                <select id="equipment-select" class="w-full">
+                    <option value="">-- Carregando equipamentos... --</option>
+                </select>
+                <button class="btn btn-primary" onclick="searchEquipment()">Pesquisar</button>
+            </div>
+            
+            <div id="equipment-results" class="results-container">
+            </div>
+            <div id="map" style="height: 400px; margin-top: 20px;"></div>
+            <button class="btn-back" onclick="showScreen('user-location-select')">← Alterar Localização</button>
+        </div>
+    </div>
+
+    <div id="user-profile" class="screen">
+        <div class="container">
+            <button class="btn-back" onclick="showScreen('user-dashboard')">← Voltar</button>
+            <h2>Meu Perfil</h2>
+            <form onsubmit="updateUserProfile(event)">
+                <input type="text" id="edit-user-name" placeholder="Nome Completo" required />
+                <input type="tel" id="edit-user-phone" placeholder="Telefone" required />
+                
+                <div class="autocomplete-container">
+                    <input
+                        type="text"
+                        id="edit-user-street"
+                        placeholder="Digite o novo endereço para alterar..."
+                        autocomplete="off"
+                        oninput="handleAddressInput(event, 'edit-user-streetList')"
+                    />
+                    <div class="autocomplete-list" id="edit-user-streetList"></div>
+                </div>
+
+                <input type="text" id="edit-user-neighborhood" placeholder="Bairro" readonly />
+                <input type="text" id="edit-user-city" placeholder="Cidade" readonly />
+                <input type="text" id="edit-user-state" placeholder="Estado" readonly />
+                <input type="email" id="edit-user-email" placeholder="E-mail" readonly />
+                <button type="submit" class="btn btn-primary">Atualizar Dados</button>
+            </form>
+            <button class="btn btn-danger" onclick="logout()">Sair da Conta</button>
+        </div>
+    </div>
+
+    <div id="renter-login" class="screen">
+        <div class="container">
+            <button class="btn-back" onclick="showScreen('home-screen')">← Voltar</button>
+            <h2>Login do Locador</h2>
+            <form onsubmit="renterLogin(event)">
+                <input type="email" id="renter-email" placeholder="E-mail" required />
+                <input type="password" id="renter-password" placeholder="Senha" required />
+                <button type="submit" class="btn btn-primary">Entrar</button>
+            </form>
+            <div class="links">
+                <a href="#" onclick="showScreen('renter-register')">Criar conta</a>
+                <a href="#" onclick="showScreen('renter-forgot-password')">Esqueci minha senha</a>
+            </div>
+        </div>
+    </div>
+
+    <div id="renter-register" class="screen">
+        <div class="container">
+            <button class="btn-back" onclick="showScreen('renter-login')">← Voltar</button>
+            <h2>Cadastro de Locador</h2>
+            <form onsubmit="renterRegister(event)">
+                <input type="text" id="reg-renter-name" placeholder="Nome / Empresa" required />
+                <input type="tel" id="reg-renter-phone" placeholder="Telefone" required />
+
+                 <div class="autocomplete-container">
+                    <input
+                        type="text"
+                        id="reg-renter-street"
+                        placeholder="Comece a digitar sua Rua..."
+                        autocomplete="off"
+                        oninput="handleAddressInput(event, 'reg-renter-streetList')"
+                        required
+                    />
+                    <div class="autocomplete-list" id="reg-renter-streetList"></div>
+                </div>
+
+                <input type="text" id="reg-renter-neighborhood" placeholder="Bairro" readonly />
+                <input type="text" id="reg-renter-city" placeholder="Cidade" readonly />
+                <input type="text" id="reg-renter-state" placeholder="Estado" readonly />
+                <input type="hidden" id="reg-renter-lat" />
+                <input type="hidden" id="reg-renter-lng" />
+                
+                <input type="email" id="reg-renter-email" placeholder="E-mail" required />
+                <input type="password" id="reg-renter-password" placeholder="Senha" required />
+                <input type="password" id="reg-renter-confirm-password" placeholder="Confirmar Senha" required />
+                <button type="submit" class="btn btn-primary">Cadastrar</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="renter-forgot-password" class="screen">
+        <div class="container">
+            <button class="btn-back" onclick="showScreen('renter-login')">← Voltar</button>
+            <h2>Recuperar Senha</h2>
+            <form onsubmit="recoverPassword(event, 'renter')">
+                <input type="email" id="recover-renter-email" placeholder="E-mail cadastrado" required />
+                <button type="submit" class="btn btn-primary">Enviar nova senha</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="renter-dashboard" class="screen">
+        <div class="container">
+            <div class="header">
+                <h2>Meus Equipamentos</h2>
+                <button class="btn-icon" onclick="showScreen('renter-profile')">⚙️</button>
+            </div>
+            <div class="plan-info" id="plan-info"></div>
+            <button class="btn btn-primary" onclick="showScreen('add-equipment')">+ Adicionar Equipamento</button>
+            <div id="equipment-list" class="equipment-list"></div>
+            <button class="btn btn-upgrade" onclick="showScreen('upgrade-plan')">⭐ Melhorar Plano</button>
+        </div>
+    </div>
+
+    <div id="add-equipment" class="screen">
+        <div class="container">
+            <button class="btn-back" onclick="showScreen('renter-dashboard')">← Voltar</button>
+            <h2 id="equipment-form-title">Adicionar Equipamento</h2>
+            <form onsubmit="saveEquipment(event)">
+                <input type="hidden" id="equipment-id" />
+                <input type="text" id="equipment-name" placeholder="Nome do Equipamento" required />
+                <textarea id="equipment-description" placeholder="Descrição" rows="4" required></textarea>
+                <input type="number" id="equipment-price" placeholder="Valor da Diária (R$)" step="0.01" required />
+                <select id="equipment-voltage" required>
+                    <option value="">Tensão da Rede</option>
+                    <option value="110V">110V</option>
+                    <option value="220V">220V</option>
+                    <option value="380V">380V (Trifásico)</option>
+                    <option value="Bivolt">Bivolt</option>
+                    <option value="N/A">Não se aplica</option>
+                </select>
+                <input type="file" id="equipment-image" accept="image/*" />
+                <div id="image-preview"></div>
+                <button type="submit" class="btn btn-primary">Salvar Equipamento</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="upgrade-plan" class="screen">
+        <div class="container">
+            <button class="btn-back" onclick="showScreen('renter-dashboard')">← Voltar</button>
+            <h2>Escolha seu Plano</h2>
+            <div class="plans-container">
+                <div class="plan-card">
+                    <h3>Grátis</h3>
+                    <p class="price">R$ 0,00</p>
+                    <ul>
+                        <li>1 equipamento</li>
+                        <li>Alteração de descrição: 24h</li>
+                    </ul>
+                    <button id="btn-plan-free" class="btn btn-secondary" onclick="selectPlan('free')">Selecionar</button>
+                </div>
+                <div class="plan-card featured">
+                    <h3>Básico</h3>
+                    <p class="price">R$ 15,00<span>/mês</span></p>
+                    <ul>
+                        <li>10 equipamentos</li>
+                        <li>Edição ilimitada</li>
+                        <li>Destaque nas buscas</li>
+                    </ul>
+                    <button id="btn-plan-basic" class="btn btn-primary" onclick="selectPlan('basic')">Assinar</button>
+                </div>
+                <div class="plan-card featured">
+                    <h3>Premium</h3>
+                    <p class="price">R$ 30,00<span>/mês</span></p>
+                    <ul>
+                        <li>20 equipamentos</li>
+                        <li>Edição ilimitada</li>
+                        <li>Destaque nas buscas</li>
+                        <li>Suporte prioritário</li>
+                    </ul>
+                    <button id="btn-plan-premium" class="btn btn-primary" onclick="selectPlan('premium')">Assinar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="renter-profile" class="screen">
+        <div class="container">
+            <button class="btn-back" onclick="showScreen('renter-dashboard')">← Voltar</button>
+            <h2>Meu Perfil</h2>
+            <form onsubmit="updateRenterProfile(event)">
+                <input type="text" id="edit-renter-name" placeholder="Nome / Empresa" required />
+                <input type="tel" id="edit-renter-phone" placeholder="Telefone" required />
+                
+                <div class="autocomplete-container">
+                    <input
+                        type="text"
+                        id="edit-renter-street"
+                        placeholder="Digite o novo endereço para alterar..."
+                        autocomplete="off"
+                        oninput="handleAddressInput(event, 'edit-renter-streetList')"
+                    />
+                    <div class="autocomplete-list" id="edit-renter-streetList"></div>
+                </div>
+
+                <input type="text" id="edit-renter-neighborhood" placeholder="Bairro" readonly />
+                <input type="text" id="edit-renter-city" placeholder="Cidade" readonly />
+                <input type="text" id="edit-renter-state" placeholder="Estado" readonly />
+                <input type="email" id="edit-renter-email" placeholder="E-mail" readonly />
+                <button type="submit" class="btn btn-primary">Atualizar Dados</button>
+            </form>
+            <button class="btn btn-danger" onclick="logout()">Sair da Conta</button>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <script src="https://cdn.jsdelivr.net/npm/appwrite@11.0.0"></script>
+    
+    <script src="app.js"></script>
+</body>
+</html>
