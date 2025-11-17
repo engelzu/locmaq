@@ -486,6 +486,7 @@ async function loadEquipmentList() {
     }
 }
 
+// NOVA FUNÇÃO (para limpar o form SÓ ao adicionar)
 function prepareAddEquipmentForm() {
     const form = document.getElementById('add-equipment').querySelector('form');
     if(form) form.reset();
@@ -512,6 +513,7 @@ async function saveEquipment(event) {
 
     try {
         if (imageFile) {
+            // Permissão para "Qualquer um" (Any) "Ler" (Read)
             const filePermissions = [
                 Permission.read(Role.any())
             ];
@@ -523,7 +525,7 @@ async function saveEquipment(event) {
                 filePermissions 
             );
             
-            // CORREÇÃO: Usar getFileView para um link público
+            // CORREÇÃO: Usar getFileView para um link público e permanente
             const result = storage.getFileView(BUCKET_ID, uploadedFile.$id);
             imageUrl = result.href; 
         }
@@ -570,6 +572,7 @@ async function saveEquipment(event) {
     }
 }
 
+// CORREÇÃO: Esta função agora funciona
 async function editEquipment(docId) {
     try {
         const eq = await databases.getDocument(DB_ID, EQUIPMENT_COLLECTION_ID, docId);
@@ -587,7 +590,7 @@ async function editEquipment(docId) {
             preview.innerHTML = `<img src="${eq.imageUrl}" alt="Prévia">`;
         }
         
-        showScreen('add-equipment'); 
+        showScreen('add-equipment'); // Agora a tela é mostrada com os dados
 
     } catch (error) {
         console.error("Erro ao buscar equipamento para editar:", error);
@@ -678,17 +681,16 @@ function initializeMap() {
     }
 }
 
-// ======================================================
-// CORREÇÃO 3 (MAPA): Adicionando map.invalidateSize()
-// ======================================================
+// CORREÇÃO: Adiciona 'map.invalidateSize()' para consertar mapa cinza
 async function searchRenters(event) {
     event.preventDefault();
     initializeMap();
     
     // Força o Leaflet a recalcular o tamanho do mapa
-    // (Conserta o mapa cinza)
     setTimeout(() => {
-        map.invalidateSize();
+        if (map) {
+            map.invalidateSize();
+        }
     }, 100); 
     
     await populateEquipmentDropdown(); 
@@ -698,9 +700,6 @@ async function searchRenters(event) {
     document.getElementById('equipment-results').innerHTML = `<div class="empty-state"><p>Selecione um equipamento e clique em 'Pesquisar'.</p></div>`;
     markersLayer.clearLayers();
 }
-// ======================================================
-// FIM DA CORREÇÃO
-// ======================================================
 
 async function populateEquipmentDropdown() {
     const state = document.getElementById('user-state-select').value;
@@ -740,9 +739,7 @@ async function populateEquipmentDropdown() {
     }
 }
 
-// ======================================================
-// CORREÇÃO 3 (MAPA): Adicionando verificação de lat/lng
-// ======================================================
+// CORREÇÃO: Adiciona verificação de 'lat' e 'lng' antes de criar marcador
 async function searchEquipment() {
     const state = document.getElementById('user-state-select').value;
     const city = document.getElementById('user-city-select').value;
@@ -806,7 +803,6 @@ async function searchEquipment() {
         if (bounds.length > 0) {
             map.fitBounds(bounds, { padding: [50, 50] });
         } else {
-            // Se nenhum equipamento tinha coordenadas, reseta o mapa
             map.setView([-15.78, -47.92], 4);
         }
         
@@ -815,9 +811,6 @@ async function searchEquipment() {
         resultsContainer.innerHTML = `<div class="empty-state"><p>Erro ao realizar a busca.</p></div>`;
     }
 }
-// ======================================================
-// FIM DA CORREÇÃO
-// ======================================================
 
 async function contactRenter(renterId) {
     try {
@@ -831,6 +824,7 @@ async function contactRenter(renterId) {
 
 
 // --- GEOAPIFY E LOCALIZAÇÃO (MÉTODO MANUAL) ---
+// (Esta seção está correta e não foi alterada)
 
 let debounceTimer; 
 
@@ -1015,8 +1009,3 @@ async function loadCities(state, selectId) {
         select.innerHTML = '<option value="">Erro ao carregar cidades</option>';
     }
 }
-
-
-}
-
-
