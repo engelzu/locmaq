@@ -4,7 +4,6 @@ const apiKey = '435bf07fb6d444f8a0ca1af6906f1bce';
 // ======================================================
 // INICIALIZAÇÃO DO APPWRITE
 // ======================================================
-// CORREÇÃO 1 (IMAGEM): Importar Permission e Role
 const { Client, Account, ID, Databases, Storage, Query, Permission, Role } = Appwrite;
 
 const client = new Client();
@@ -87,16 +86,12 @@ async function initializeApp() {
 
 // --- NAVEGAÇÃO E ALERTAS ---
 
-// ======================================================
-// CORREÇÃO 2 (EDITAR FORM): Bloco 'form.reset()' removido
-// ======================================================
 function showScreen(screenId) {
     document.querySelectorAll('.screen').forEach(screen => {
         screen.classList.remove('active');
     });
     
-    // O 'form.reset()' foi removido daqui
-    // Ele agora é chamado por 'prepareAddEquipmentForm()'
+    // O 'form.reset()' foi removido daqui para o 'Editar' funcionar
 
     if (screenId === 'user-location-select') {
         loadStates('user-state-select'); 
@@ -135,7 +130,6 @@ function showAlert(message, type = 'error') {
 
 
 // --- AUTENTICAÇÃO E SESSÃO ---
-// (Esta seção está correta e não foi alterada)
 
 async function userRegister(event) {
     event.preventDefault();
@@ -302,7 +296,6 @@ async function logout() {
 
 
 // --- PERFIS (USUÁRIO E LOCADOR) ---
-// (Esta seção está correta e não foi alterada)
 
 function loadUserProfile() {
     if (!currentSession.isLoggedIn || currentSession.isRenter) return; 
@@ -493,26 +486,17 @@ async function loadEquipmentList() {
     }
 }
 
-// ======================================================
-// CORREÇÃO 2 (EDITAR FORM): Nova função
-// ======================================================
 function prepareAddEquipmentForm() {
-    // 1. Limpa o formulário
     const form = document.getElementById('add-equipment').querySelector('form');
     if(form) form.reset();
     
-    // 2. Reseta o título e o ID
     document.getElementById('equipment-form-title').textContent = 'Adicionar Equipamento';
     document.getElementById('equipment-id').value = '';
     document.getElementById('image-preview').innerHTML = '';
     
-    // 3. Mostra a tela
     showScreen('add-equipment');
 }
 
-// ======================================================
-// CORREÇÃO 1 (IMAGEM): Permissões adicionadas ao storage.createFile
-// ======================================================
 async function saveEquipment(event) {
     event.preventDefault();
     const renter = currentSession.profile;
@@ -528,7 +512,6 @@ async function saveEquipment(event) {
 
     try {
         if (imageFile) {
-            // Define permissões: Qualquer um (Any) pode LER (Read)
             const filePermissions = [
                 Permission.read(Role.any())
             ];
@@ -537,9 +520,10 @@ async function saveEquipment(event) {
                 BUCKET_ID, 
                 ID.unique(), 
                 imageFile,
-                filePermissions // <-- Adiciona as permissões aqui
+                filePermissions 
             );
             
+            // CORREÇÃO: Usar getFileView para um link público
             const result = storage.getFileView(BUCKET_ID, uploadedFile.$id);
             imageUrl = result.href; 
         }
@@ -559,15 +543,12 @@ async function saveEquipment(event) {
         }
 
         if (id) {
-            // Se estiver editando, só atualiza a URL da imagem se uma *nova* foi enviada.
-            // Se nenhuma nova imagem foi enviada, não sobrescreve a URL antiga.
             if (!imageUrl) {
-                delete equipmentData.imageUrl; // Não atualiza o campo de imagem
+                delete equipmentData.imageUrl; 
             }
             await databases.updateDocument(DB_ID, EQUIPMENT_COLLECTION_ID, id, equipmentData);
             showAlert('Equipamento atualizado!', 'success');
         } else {
-            // Se for novo, verifica o limite
             const response = await databases.listDocuments(DB_ID, EQUIPMENT_COLLECTION_ID, [Query.equal('renterId', renter.$id)]);
             const myEquipmentCount = response.total;
             const limit = planLimits[renter.plan].max;
@@ -589,15 +570,10 @@ async function saveEquipment(event) {
     }
 }
 
-// ======================================================
-// CORREÇÃO 2 (EDITAR FORM): Função editEquipment atualizada
-// ======================================================
 async function editEquipment(docId) {
     try {
-        // 1. Busca os dados PRIMEIRO
         const eq = await databases.getDocument(DB_ID, EQUIPMENT_COLLECTION_ID, docId);
 
-        // 2. Preenche os campos
         document.getElementById('equipment-form-title').textContent = 'Editar Equipamento';
         document.getElementById('equipment-id').value = eq.$id; 
         document.getElementById('equipment-name').value = eq.name;
@@ -608,11 +584,9 @@ async function editEquipment(docId) {
         const preview = document.getElementById('image-preview');
         preview.innerHTML = '';
         if (eq.imageUrl) {
-            // Mostra a imagem existente
             preview.innerHTML = `<img src="${eq.imageUrl}" alt="Prévia">`;
         }
         
-        // 3. AGORA mostra a tela (sem o 'form.reset()' no showScreen)
         showScreen('add-equipment'); 
 
     } catch (error) {
@@ -624,7 +598,6 @@ async function editEquipment(docId) {
 async function deleteEquipment(docId) {
     if (confirm('Tem certeza que deseja excluir este equipamento?')) {
         try {
-            // Bônus: Se houver uma imagem, tenta excluí-la do Storage
             try {
                 const eq = await databases.getDocument(DB_ID, EQUIPMENT_COLLECTION_ID, docId);
                 if (eq.imageUrl) {
@@ -637,7 +610,6 @@ async function deleteEquipment(docId) {
                 console.warn("Não foi possível excluir a imagem do storage (ou ela não existia):", storageError);
             }
             
-            // Exclui o documento do banco de dados
             await databases.deleteDocument(DB_ID, EQUIPMENT_COLLECTION_ID, docId);
             
             showAlert('Equipamento excluído.', 'success');
@@ -706,9 +678,18 @@ function initializeMap() {
     }
 }
 
+// ======================================================
+// CORREÇÃO 3 (MAPA): Adicionando map.invalidateSize()
+// ======================================================
 async function searchRenters(event) {
     event.preventDefault();
     initializeMap();
+    
+    // Força o Leaflet a recalcular o tamanho do mapa
+    // (Conserta o mapa cinza)
+    setTimeout(() => {
+        map.invalidateSize();
+    }, 100); 
     
     await populateEquipmentDropdown(); 
     
@@ -717,6 +698,9 @@ async function searchRenters(event) {
     document.getElementById('equipment-results').innerHTML = `<div class="empty-state"><p>Selecione um equipamento e clique em 'Pesquisar'.</p></div>`;
     markersLayer.clearLayers();
 }
+// ======================================================
+// FIM DA CORREÇÃO
+// ======================================================
 
 async function populateEquipmentDropdown() {
     const state = document.getElementById('user-state-select').value;
@@ -756,6 +740,9 @@ async function populateEquipmentDropdown() {
     }
 }
 
+// ======================================================
+// CORREÇÃO 3 (MAPA): Adicionando verificação de lat/lng
+// ======================================================
 async function searchEquipment() {
     const state = document.getElementById('user-state-select').value;
     const city = document.getElementById('user-city-select').value;
@@ -805,14 +792,22 @@ async function searchEquipment() {
                 </div>
             `;
             
-            const latLng = [eq.lat, eq.lng];
-            const marker = L.marker(latLng).addTo(markersLayer);
-            marker.bindPopup(`<b>${eq.name}</b><br>${eq.renterName}<br>R$ ${eq.price}/dia`);
-            bounds.push(latLng);
+            // VERIFICA SE O EQUIPAMENTO TEM COORDENADAS VÁLIDAS
+            if (eq.lat && eq.lng && eq.lat !== 0 && eq.lng !== 0) {
+                const latLng = [eq.lat, eq.lng];
+                const marker = L.marker(latLng).addTo(markersLayer);
+                marker.bindPopup(`<b>${eq.name}</b><br>${eq.renterName}<br>R$ ${eq.price}/dia`);
+                bounds.push(latLng);
+            } else {
+                console.warn(`Equipamento '${eq.name}' (ID: ${eq.$id}) está sem coordenadas. Não será exibido no mapa.`);
+            }
         });
         
         if (bounds.length > 0) {
             map.fitBounds(bounds, { padding: [50, 50] });
+        } else {
+            // Se nenhum equipamento tinha coordenadas, reseta o mapa
+            map.setView([-15.78, -47.92], 4);
         }
         
     } catch (error) {
@@ -820,6 +815,9 @@ async function searchEquipment() {
         resultsContainer.innerHTML = `<div class="empty-state"><p>Erro ao realizar a busca.</p></div>`;
     }
 }
+// ======================================================
+// FIM DA CORREÇÃO
+// ======================================================
 
 async function contactRenter(renterId) {
     try {
@@ -1018,3 +1016,6 @@ async function loadCities(state, selectId) {
     }
 }
 
+
+}
+me envie os arquivos completos e atualizados
