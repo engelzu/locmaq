@@ -132,14 +132,15 @@ textarea { resize: vertical; min-height: 100px; }
     margin-bottom: 20px; 
 }
 .search-box select { 
-    /* A regra 'width: 100%' da base já se aplica */
+    /* A regra 'width: 100%' da base já se aplica, 'flex: 1' removido */
 } 
 .search-box button { 
-    /* A regra 'width: 100%' da base já se aplica */
+    /* A regra 'width: 100%' e 'padding: 18px' do .btn base já se aplica */
 }
 /* ====================================================== */
 /* FIM DA CORREÇÃO                                        */
 /* ====================================================== */
+
 
 .results-container { display: grid; gap: 15px; margin-top: 20px;}
 .result-card {
