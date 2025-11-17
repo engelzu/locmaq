@@ -122,9 +122,24 @@ textarea { resize: vertical; min-height: 100px; }
 .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
 .header h2 { color: var(--dark); }
 
-.search-box { display: flex; gap: 10px; margin-bottom: 20px; }
-.search-box select { flex: 1; } /* Ajustado para select */
-.search-box button { padding: 15px 25px; }
+/* ====================================================== */
+/* CORREÇÃO DO LAYOUT DE BUSCA (Deixa responsivo)         */
+/* ====================================================== */
+.search-box { 
+    display: flex; 
+    flex-direction: column; /* Coloca os itens um em cima do outro */
+    gap: 15px; /* Adiciona espaço entre o select e o botão */
+    margin-bottom: 20px; 
+}
+.search-box select { 
+    /* A regra 'width: 100%' da base já se aplica */
+} 
+.search-box button { 
+    /* A regra 'width: 100%' da base já se aplica */
+}
+/* ====================================================== */
+/* FIM DA CORREÇÃO                                        */
+/* ====================================================== */
 
 .results-container { display: grid; gap: 15px; margin-top: 20px;}
 .result-card {
