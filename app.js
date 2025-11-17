@@ -4,7 +4,7 @@ const apiKey = '435bf07fb6d444f8a0ca1af6906f1bce';
 // ======================================================
 // INICIALIZAÇÃO DO APPWRITE
 // ======================================================
-// CORREÇÃO 1: Adicionamos 'Permission' e 'Role'
+// CORREÇÃO 1 (IMAGEM): Importar Permission e Role
 const { Client, Account, ID, Databases, Storage, Query, Permission, Role } = Appwrite;
 
 const client = new Client();
@@ -19,7 +19,7 @@ const storage = new Storage(client);
 // IDs que você configurou no Appwrite
 const DB_ID = '6917721d002bc00da375';
 const USERS_COLLECTION_ID = 'users';
-const RENTERS_COLLECTION_ID = 'locations';
+const RENTERS_COLLECTION_ID = 'locations'; 
 const EQUIPMENT_COLLECTION_ID = 'products';
 const BUCKET_ID = 'product-images';
 
@@ -87,19 +87,16 @@ async function initializeApp() {
 
 // --- NAVEGAÇÃO E ALERTAS ---
 
+// ======================================================
+// CORREÇÃO 2 (EDITAR FORM): Bloco 'form.reset()' removido
+// ======================================================
 function showScreen(screenId) {
     document.querySelectorAll('.screen').forEach(screen => {
         screen.classList.remove('active');
     });
     
-    if (!screenId.includes('dashboard')) {
-        document.querySelectorAll('form').forEach(form => form.reset());
-        
-        const preview = document.getElementById('image-preview');
-        if (preview) {
-            preview.innerHTML = '';
-        }
-    }
+    // O 'form.reset()' foi removido daqui
+    // Ele agora é chamado por 'prepareAddEquipmentForm()'
 
     if (screenId === 'user-location-select') {
         loadStates('user-state-select'); 
@@ -138,6 +135,7 @@ function showAlert(message, type = 'error') {
 
 
 // --- AUTENTICAÇÃO E SESSÃO ---
+// (Esta seção está correta e não foi alterada)
 
 async function userRegister(event) {
     event.preventDefault();
@@ -304,6 +302,7 @@ async function logout() {
 
 
 // --- PERFIS (USUÁRIO E LOCADOR) ---
+// (Esta seção está correta e não foi alterada)
 
 function loadUserProfile() {
     if (!currentSession.isLoggedIn || currentSession.isRenter) return; 
@@ -495,7 +494,24 @@ async function loadEquipmentList() {
 }
 
 // ======================================================
-// CORREÇÃO 2: Adicionamos permissões ao criar o arquivo
+// CORREÇÃO 2 (EDITAR FORM): Nova função
+// ======================================================
+function prepareAddEquipmentForm() {
+    // 1. Limpa o formulário
+    const form = document.getElementById('add-equipment').querySelector('form');
+    if(form) form.reset();
+    
+    // 2. Reseta o título e o ID
+    document.getElementById('equipment-form-title').textContent = 'Adicionar Equipamento';
+    document.getElementById('equipment-id').value = '';
+    document.getElementById('image-preview').innerHTML = '';
+    
+    // 3. Mostra a tela
+    showScreen('add-equipment');
+}
+
+// ======================================================
+// CORREÇÃO 1 (IMAGEM): Permissões adicionadas ao storage.createFile
 // ======================================================
 async function saveEquipment(event) {
     event.preventDefault();
@@ -512,18 +528,16 @@ async function saveEquipment(event) {
 
     try {
         if (imageFile) {
-            // Define as permissões: qualquer um pode ler, o usuário logado pode alterar/excluir
+            // Define permissões: Qualquer um (Any) pode LER (Read)
             const filePermissions = [
-                Permission.read(Role.any()), // <-- ISSO É O MAIS IMPORTANTE
-                Permission.update(Role.user(currentSession.account.$id)),
-                Permission.delete(Role.user(currentSession.account.$id))
+                Permission.read(Role.any())
             ];
             
             const uploadedFile = await storage.createFile(
                 BUCKET_ID, 
                 ID.unique(), 
-                imageFile, 
-                filePermissions // <-- Adicionamos as permissões aqui
+                imageFile,
+                filePermissions // <-- Adiciona as permissões aqui
             );
             
             const result = storage.getFilePreview(BUCKET_ID, uploadedFile.$id);
@@ -545,9 +559,15 @@ async function saveEquipment(event) {
         }
 
         if (id) {
+            // Se estiver editando, só atualiza a URL da imagem se uma *nova* foi enviada.
+            // Se nenhuma nova imagem foi enviada, não sobrescreve a URL antiga.
+            if (!imageUrl) {
+                delete equipmentData.imageUrl; // Não atualiza o campo de imagem
+            }
             await databases.updateDocument(DB_ID, EQUIPMENT_COLLECTION_ID, id, equipmentData);
             showAlert('Equipamento atualizado!', 'success');
         } else {
+            // Se for novo, verifica o limite
             const response = await databases.listDocuments(DB_ID, EQUIPMENT_COLLECTION_ID, [Query.equal('renterId', renter.$id)]);
             const myEquipmentCount = response.total;
             const limit = planLimits[renter.plan].max;
@@ -568,14 +588,16 @@ async function saveEquipment(event) {
         showAlert(`Erro ao salvar: ${error.message}`);
     }
 }
-// ======================================================
-// FIM DA CORREÇÃO
-// ======================================================
 
+// ======================================================
+// CORREÇÃO 2 (EDITAR FORM): Função editEquipment atualizada
+// ======================================================
 async function editEquipment(docId) {
     try {
+        // 1. Busca os dados PRIMEIRO
         const eq = await databases.getDocument(DB_ID, EQUIPMENT_COLLECTION_ID, docId);
 
+        // 2. Preenche os campos
         document.getElementById('equipment-form-title').textContent = 'Editar Equipamento';
         document.getElementById('equipment-id').value = eq.$id; 
         document.getElementById('equipment-name').value = eq.name;
@@ -586,10 +608,13 @@ async function editEquipment(docId) {
         const preview = document.getElementById('image-preview');
         preview.innerHTML = '';
         if (eq.imageUrl) {
+            // Mostra a imagem existente
             preview.innerHTML = `<img src="${eq.imageUrl}" alt="Prévia">`;
         }
         
-        showScreen('add-equipment');
+        // 3. AGORA mostra a tela (sem o 'form.reset()' no showScreen)
+        showScreen('add-equipment'); 
+
     } catch (error) {
         console.error("Erro ao buscar equipamento para editar:", error);
         showAlert(`Erro: ${error.message}`);
@@ -599,6 +624,20 @@ async function editEquipment(docId) {
 async function deleteEquipment(docId) {
     if (confirm('Tem certeza que deseja excluir este equipamento?')) {
         try {
+            // Bônus: Se houver uma imagem, tenta excluí-la do Storage
+            try {
+                const eq = await databases.getDocument(DB_ID, EQUIPMENT_COLLECTION_ID, docId);
+                if (eq.imageUrl) {
+                    const url = new URL(eq.imageUrl);
+                    const fileId = url.pathname.split('/files/')[1].split('/')[0];
+                    await storage.deleteFile(BUCKET_ID, fileId);
+                    console.log("Imagem do storage excluída:", fileId);
+                }
+            } catch (storageError) {
+                console.warn("Não foi possível excluir a imagem do storage (ou ela não existia):", storageError);
+            }
+            
+            // Exclui o documento do banco de dados
             await databases.deleteDocument(DB_ID, EQUIPMENT_COLLECTION_ID, docId);
             
             showAlert('Equipamento excluído.', 'success');
