@@ -11,84 +11,58 @@
     --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.15);
 }
 
+/* ====================================================== */
+/* CORREÇÃO DE CENTRALIZAÇÃO VERTICAL */
+/* ====================================================== */
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     min-height: 100vh;
     padding: 20px;
     
-    /* ============================================== */
-    /* CENTRALIZAÇÃO VERTICAL E HORIZONTAL            */
-    display: flex; /* Ativa o flexbox */
-    justify-content: center; /* Centraliza horizontalmente */
-    align-items: center; /* Centraliza verticalmente */
-    /* ============================================== */
+    /* Adicionado para centralizar o .container na tela */
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
+/* ====================================================== */
 
-.screen { display: none; }
+.screen { 
+    display: none; 
+    width: 100%; /* Garante que a tela ocupe o espaço */
+}
 .screen.active { display: block; animation: fadeIn 0.3s ease-in; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
 
 /* ====================================================== */
-/* FUNDO DO CONTAINER ATUALIZADO PARA O DEGRADÊ           */
+/* FUNDO DO CONTAINER COM DEGRADÊ (Da sua solicitação anterior) */
 /* ====================================================== */
 .container {
     max-width: 600px;
-    width: 100%; /* Garante que o container ocupe a largura total disponível */
     margin: 0 auto;
     background: linear-gradient(145deg, #7c4dff, #b388ff); 
     border-radius: 20px;
     padding: 30px;
     box-shadow: var(--shadow-lg);
-    /* Removido o min-height para deixar o conteúdo determinar a altura,
-       mas mantendo um bom espaçamento interno */
 }
 
-/* Como o fundo agora é escuro (roxo), precisamos
-  garantir que os textos dentro dele fiquem brancos.
-*/
+/* Textos dentro do container agora são brancos */
 .container h2,
 .container h3,
 .container p,
 .container label,
 .container .links a {
-    color: #FFFFFF; /* Texto branco */
+    color: #FFFFFF;
 }
 
-/* ============================================== */
-/* AJUSTES PARA O LOGO MAIOR E CENTRALIZADO       */
-.logo {
-    text-align: center; 
-    margin-bottom: 30px; 
-    width: 100%; /* Garante que o container do logo ocupe toda a largura */
-}
-.logo-img {
-    width: 80%; /* Aumenta a largura do logo para 80% do container */
-    max-width: 250px; /* Limita a largura máxima para não ficar grande demais em telas maiores */
-    height: auto;
-    margin-bottom: 10px; /* Espaçamento entre o logo e a descrição */
-    border-radius: 10px; 
-    /* Adiciona uma pequena sombra para destacar o logo, opcional */
-    box-shadow: 0 8px 15px rgba(0,0,0,0.3); 
-}
-
-.logo p {
-    color: #FFFFFF; 
-    font-size: 1.1em; /* Ajusta o tamanho da fonte para o subtítulo */
-    margin-top: 10px; 
-    text-shadow: 0 1px 3px rgba(0,0,0,0.2); /* Adiciona sombra ao texto para melhor leitura */
-}
-/* ============================================== */
-
-
-/* Ajusta a cor dos inputs para contrastar com o fundo roxo */
+/* Inputs com fundo claro para contrastar */
 input, textarea, select {
     background-color: rgba(255, 255, 255, 0.9) !important;
     border: 2px solid rgba(255, 255, 255, 0.7) !important;
-    color: #333333 !important; /* Texto escuro dentro do input */
+    color: #333333 !important;
 }
 input::placeholder, textarea::placeholder {
-    color: #777777 !important; /* Cor do placeholder */
+    color: #777777 !important;
 }
 input:focus, textarea:focus, select:focus { 
     outline: none; 
@@ -98,6 +72,32 @@ input:focus, textarea:focus, select:focus {
 /* FIM DA ALTERAÇÃO DO CONTAINER                          */
 /* ====================================================== */
 
+
+/* ====================================================== */
+/* CORREÇÃO DO TAMANHO DO LOGO */
+/* ====================================================== */
+.logo {
+    text-align: center; 
+    margin-bottom: 30px; 
+}
+.logo-img {
+    width: 80%; /* Logo ocupará 80% da largura do container */
+    max-width: 280px; /* Limite máximo para telas maiores */
+    height: auto;
+    margin-bottom: 10px; 
+    border-radius: 10px; 
+    box-shadow: 0 8px 15px rgba(0,0,0,0.3);
+}
+
+.logo p {
+    color: #FFFFFF; /* Texto da descrição em branco */
+    font-size: 1.1em;
+    margin-top: 10px; 
+    text-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+/* ====================================================== */
+/* FIM DA CORREÇÃO DO LOGO                                */
+/* ====================================================== */
 
 .button-group { display: flex; flex-direction: column; gap: 20px; }
 .btn {
@@ -110,7 +110,7 @@ input:focus, textarea:focus, select:focus {
 .btn-danger { background: var(--danger-color); color: white; margin-top: 20px;}
 .btn-upgrade { background: linear-gradient(135deg, #FFD700, #FFA500); color: var(--dark); margin-top: 20px;}
 .btn-back {
-    background: transparent; border: none; color: #FFFFFF; /* Texto branco */
+    background: transparent; border: none; color: #FFFFFF; /* Branco para o fundo roxo */
     font-size: 1em; cursor: pointer;
     margin-bottom: 20px; padding: 10px; text-align: left; font-weight: 600;
 }
@@ -175,11 +175,9 @@ form { display: flex; flex-direction: column; gap: 15px; margin-top: 20px; }
 
 
 .links { display: flex; justify-content: space-between; margin-top: 20px; }
-/* .links a { color: var(--secondary-color); text-decoration: none; font-size: 0.9em; } (movido para .container a) */
 .links a:hover { text-decoration: underline; }
 
 .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-/* .header h2 { color: var(--dark); } (movido para .container h2) */
 
 .search-box { 
     display: flex; 
@@ -273,7 +271,10 @@ form { display: flex; flex-direction: column; gap: 15px; margin-top: 20px; }
 @media (max-width: 768px) {
     body { padding: 10px; }
     .container { padding: 20px; }
-    .logo-img { width: 90%; /* Ajuste para telas menores */ max-width: none;}
+    .logo-img { 
+        width: 80%; /* Logo maior em telas de celular */
+        max-width: 250px; /* Mantém o limite */
+    }
     .plans-container { grid-template-columns: 1fr; }
     .equipment-card { flex-direction: column; }
     .equipment-card img { width: 100%; }
@@ -293,3 +294,13 @@ form { display: flex; flex-direction: column; gap: 15px; margin-top: 20px; }
 .empty-state p { font-size: 1.1em; }
 
 .badge {
+    display: inline-block; padding: 5px 10px; border-radius: 20px; font-size: 0.8em; font-weight: 600; margin-left: 10px;
+}
+.badge-free { background: var(--gray); color: white;}
+.badge-basic { background: var(--accent-color); color: white;}
+.badge-premium { background: var(--primary-color); color: white;}
+
+.restriction-notice {
+    background: #FEF3C7; border: 2px solid var(--accent-color); padding: 15px;
+    border-radius: 10px; margin-top: 10px; font-size: 0.9em; color: var(--dark);
+}
