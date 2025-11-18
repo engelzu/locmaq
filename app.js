@@ -2,6 +2,16 @@
 const apiKey = '435bf07fb6d444f8a0ca1af6906f1bce';
 
 // ======================================================
+// !! IMPORTANTE !!
+// COLE SEUS LINKS DE PAGAMENTO DO STRIPE AQUI
+// (Use os links do "Modo de Teste" primeiro)
+// ======================================================
+const STRIPE_LINK_BASICO = 'https://buy.stripe.com/test_00w9AT3P32hIggO15a5EY01'; // Ex: https://buy.stripe.com/test_...
+const STRIPE_LINK_PREMIUM = 'https://buy.stripe.com/test_00w3cv0CR4pQfcKcNS5EY00'; // Ex: https://buy.stripe.com/test_...
+// ======================================================
+
+
+// ======================================================
 // INICIALIZAÇÃO DO APPWRITE
 // ======================================================
 const { Client, Account, ID, Databases, Storage, Query, Permission, Role } = Appwrite;
@@ -91,8 +101,6 @@ function showScreen(screenId) {
         screen.classList.remove('active');
     });
     
-    // O 'form.reset()' foi removido daqui para o 'Editar' funcionar
-
     if (screenId === 'user-location-select') {
         loadStates('user-state-select'); 
     }
@@ -116,15 +124,11 @@ function showScreen(screenId) {
         console.error(`Erro: Tela com ID '${screenId}' não encontrada.`);
     }
 
-    // ======================================================
-    // CORREÇÃO DO MAPA (Para o mapa cinza)
-    // ======================================================
     if (screenId === 'user-dashboard' && map) {
         setTimeout(() => {
             map.invalidateSize();
         }, 100); 
     }
-    // ======================================================
 }
 
 function showAlert(message, type = 'error') {
@@ -642,19 +646,52 @@ function previewImage(event) {
     }
 }
 
+// ======================================================
+// FUNÇÃO selectPlan ATUALIZADA PARA O STRIPE
+// ======================================================
 async function selectPlan(planName) {
+    // 1. O plano 'free' não pode ser selecionado, apenas 'basic' ou 'premium'
+    if (planName === 'free') {
+        showAlert('Você já está no plano Grátis.', 'warning');
+        return;
+    }
+
+    if (!currentSession.isLoggedIn || !currentSession.isRenter) {
+        return showAlert("Você precisa estar logado como locador para assinar um plano.");
+    }
+
+    // 2. Pega os dados do locador para enviar ao Stripe
+    const renterId = currentSession.profile.$id; // Este é o $id do documento
+    const renterEmail = currentSession.profile.email;
+
+    // 3. Define para qual URL do Stripe redirecionar
+    let stripeUrl = "";
+    if (planName === 'basic') {
+        stripeUrl = STRIPE_LINK_BASICO;
+    } else if (planName === 'premium') {
+        stripeUrl = STRIPE_LINK_PREMIUM;
+    }
+
+    // 4. Verifica se você colou os links
+    if (!stripeUrl || !stripeUrl.startsWith('https://')) {
+        showAlert('Links de pagamento do Stripe não configurados no app.js!', 'error');
+        console.error("ERRO: Cole os links do Stripe nas constantes STRIPE_LINK_BASICO/PREMIUM no topo do app.js");
+        return;
+    }
+
     try {
-        const docId = currentSession.profile.$id;
-        const updatedDoc = await databases.updateDocument(DB_ID, RENTERS_COLLECTION_ID, docId, {
-            plan: planName
-        });
+        // 5. Constrói a URL final com os dados do cliente
+        const url = new URL(stripeUrl);
+        url.searchParams.append('prefilled_email', renterEmail);
+        url.searchParams.append('client_reference_id', renterId); // <-- MUITO IMPORTANTE
         
-        currentSession.profile = updatedDoc; 
-        showAlert(`Plano atualizado para ${planName}!`, 'success');
-        showScreen('renter-dashboard');
+        // 6. Redireciona o usuário para a página de pagamento do Stripe
+        showAlert('Redirecionando para o pagamento...', 'success');
+        window.location.href = url.toString();
+
     } catch (error) {
-         console.error("Erro ao atualizar plano:", error);
-         showAlert(`Erro: ${error.message}`);
+        console.error("Erro ao redirecionar para o Stripe:", error);
+        showAlert("Erro ao processar o link de pagamento.");
     }
 }
 
@@ -665,9 +702,11 @@ function highlightCurrentPlan() {
     document.getElementById('btn-plan-basic').textContent = 'Assinar';
     document.getElementById('btn-plan-premium').textContent = 'Assinar';
     
+    // Desabilita o botão do plano atual
     const currentPlanBtn = document.getElementById(`btn-plan-${renter.plan}`);
     if (currentPlanBtn) {
         currentPlanBtn.textContent = 'Plano Atual';
+        currentPlanBtn.disabled = true;
     }
 }
 
@@ -690,8 +729,6 @@ function initializeMap() {
 async function searchRenters(event) {
     event.preventDefault();
     initializeMap();
-    
-    // O 'invalidateSize' foi movido para a função 'showScreen'
     
     await populateEquipmentDropdown(); 
     
@@ -788,7 +825,6 @@ async function searchEquipment() {
                 </div>
             `;
             
-            // VERIFICA SE O EQUIPAMENTO TEM COORDENADAS VÁLIDAS
             if (eq.lat && eq.lng && eq.lat !== 0 && eq.lng !== 0) {
                 const latLng = [eq.lat, eq.lng];
                 const marker = L.marker(latLng).addTo(markersLayer);
