@@ -12,12 +12,12 @@
 }
 
 /* ====================================================== */
-/* CORREÇÃO DE CENTRALIZAÇÃO VERTICAL E COR DO FUNDO */
+/* CORREÇÃO DO DEGRADÊ RADIAL E CENTRALIZAÇÃO */
 /* ====================================================== */
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    /* Fundo do body agora é o mesmo degradê do container */
-    background: linear-gradient(145deg, #7c4dff, #b388ff); 
+    /* Degradê radial do centro para as bordas */
+    background: radial-gradient(circle at center, #7c4dff 0%, #b388ff 100%); 
     min-height: 100vh;
     padding: 20px;
     
@@ -25,9 +25,8 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
-    /* Certifica que o body tenha espaço para centralizar */
     margin: 0; 
-    overflow-y: auto; /* Permite rolagem se o conteúdo for grande */
+    overflow-y: auto; 
 }
 /* ====================================================== */
 
@@ -38,18 +37,15 @@ body {
 .screen.active { display: block; animation: fadeIn 0.3s ease-in; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
 
-/* ====================================================== */
-/* FUNDO DO CONTAINER COM DEGRADÊ (Da sua solicitação anterior) */
-/* ====================================================== */
 .container {
     max-width: 600px;
     width: 100%;
-    /* Margem auto para centralizar horizontalmente */
-    margin: auto; 
+    margin: auto; /* Garante centralização horizontal */
     background: linear-gradient(145deg, #7c4dff, #b388ff); 
     border-radius: 20px;
     padding: 30px;
     box-shadow: var(--shadow-lg);
+    box-sizing: border-box; /* Garante que padding e border sejam incluídos na largura/altura total */
 }
 
 /* Textos dentro do container agora são brancos */
@@ -74,8 +70,6 @@ input:focus, textarea:focus, select:focus {
     outline: none; 
     border-color: var(--primary-color) !important;
 }
-/* ====================================================== */
-/* FIM DA ALTERAÇÃO DO CONTAINER                          */
 /* ====================================================== */
 
 
