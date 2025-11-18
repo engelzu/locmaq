@@ -12,11 +12,11 @@
 }
 
 /* ====================================================== */
-/* CORREÇÃO DO DEGRADÊ RADIAL E CENTRALIZAÇÃO */
+/* CORREÇÃO FINAL - CENTRALIZAÇÃO E SCROLL */
 /* ====================================================== */
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    /* Degradê radial do centro para as bordas */
+    /* Fundo do body agora é o mesmo degradê do container */
     background: radial-gradient(circle at center, #7c4dff 0%, #b388ff 100%); 
     min-height: 100vh;
     padding: 20px;
@@ -27,6 +27,9 @@ body {
     align-items: center;
     margin: 0; 
     overflow-y: auto; 
+
+    /* ESTA LINHA CORRIGE O SCROLL E A CENTRALIZAÇÃO */
+    box-sizing: border-box; 
 }
 /* ====================================================== */
 
@@ -37,15 +40,18 @@ body {
 .screen.active { display: block; animation: fadeIn 0.3s ease-in; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
 
+/* ====================================================== */
+/* FUNDO DO CONTAINER COM DEGRADÊ */
+/* ====================================================== */
 .container {
     max-width: 600px;
     width: 100%;
-    margin: auto; /* Garante centralização horizontal */
+    margin: auto; 
     background: linear-gradient(145deg, #7c4dff, #b388ff); 
     border-radius: 20px;
     padding: 30px;
     box-shadow: var(--shadow-lg);
-    box-sizing: border-box; /* Garante que padding e border sejam incluídos na largura/altura total */
+    box-sizing: border-box; 
 }
 
 /* Textos dentro do container agora são brancos */
@@ -70,6 +76,8 @@ input:focus, textarea:focus, select:focus {
     outline: none; 
     border-color: var(--primary-color) !important;
 }
+/* ====================================================== */
+/* FIM DA ALTERAÇÃO DO CONTAINER                          */
 /* ====================================================== */
 
 
