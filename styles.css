@@ -12,24 +12,28 @@
 }
 
 /* ====================================================== */
-/* CORREÇÃO DE CENTRALIZAÇÃO VERTICAL */
+/* CORREÇÃO DE CENTRALIZAÇÃO VERTICAL E COR DO FUNDO */
 /* ====================================================== */
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    /* Fundo do body agora é o mesmo degradê do container */
+    background: linear-gradient(145deg, #7c4dff, #b388ff); 
     min-height: 100vh;
     padding: 20px;
     
-    /* Adicionado para centralizar o .container na tela */
+    /* Para centralizar o .container na tela */
     display: flex;
     justify-content: center;
     align-items: center;
+    /* Certifica que o body tenha espaço para centralizar */
+    margin: 0; 
+    overflow-y: auto; /* Permite rolagem se o conteúdo for grande */
 }
 /* ====================================================== */
 
 .screen { 
     display: none; 
-    width: 100%; /* Garante que a tela ocupe o espaço */
+    width: 100%; 
 }
 .screen.active { display: block; animation: fadeIn 0.3s ease-in; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
@@ -39,7 +43,9 @@ body {
 /* ====================================================== */
 .container {
     max-width: 600px;
-    margin: 0 auto;
+    width: 100%;
+    /* Margem auto para centralizar horizontalmente */
+    margin: auto; 
     background: linear-gradient(145deg, #7c4dff, #b388ff); 
     border-radius: 20px;
     padding: 30px;
@@ -74,30 +80,29 @@ input:focus, textarea:focus, select:focus {
 
 
 /* ====================================================== */
-/* CORREÇÃO DO TAMANHO DO LOGO */
-/* ====================================================== */
+/* AJUSTES PARA O LOGO MAIOR E CENTRALIZADO       */
 .logo {
     text-align: center; 
     margin-bottom: 30px; 
+    width: 100%; 
 }
 .logo-img {
-    width: 80%; /* Logo ocupará 80% da largura do container */
-    max-width: 280px; /* Limite máximo para telas maiores */
+    width: 80%; 
+    max-width: 280px; 
     height: auto;
     margin-bottom: 10px; 
     border-radius: 10px; 
-    box-shadow: 0 8px 15px rgba(0,0,0,0.3);
+    box-shadow: 0 8px 15px rgba(0,0,0,0.3); 
 }
 
 .logo p {
-    color: #FFFFFF; /* Texto da descrição em branco */
-    font-size: 1.1em;
+    color: #FFFFFF; 
+    font-size: 1.1em; 
     margin-top: 10px; 
-    text-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    text-shadow: 0 1px 3px rgba(0,0,0,0.2); 
 }
 /* ====================================================== */
-/* FIM DA CORREÇÃO DO LOGO                                */
-/* ====================================================== */
+
 
 .button-group { display: flex; flex-direction: column; gap: 20px; }
 .btn {
@@ -110,7 +115,7 @@ input:focus, textarea:focus, select:focus {
 .btn-danger { background: var(--danger-color); color: white; margin-top: 20px;}
 .btn-upgrade { background: linear-gradient(135deg, #FFD700, #FFA500); color: var(--dark); margin-top: 20px;}
 .btn-back {
-    background: transparent; border: none; color: #FFFFFF; /* Branco para o fundo roxo */
+    background: transparent; border: none; color: #FFFFFF; 
     font-size: 1em; cursor: pointer;
     margin-bottom: 20px; padding: 10px; text-align: left; font-weight: 600;
 }
@@ -272,8 +277,8 @@ form { display: flex; flex-direction: column; gap: 15px; margin-top: 20px; }
     body { padding: 10px; }
     .container { padding: 20px; }
     .logo-img { 
-        width: 80%; /* Logo maior em telas de celular */
-        max-width: 250px; /* Mantém o limite */
+        width: 80%; 
+        max-width: 250px; 
     }
     .plans-container { grid-template-columns: 1fr; }
     .equipment-card { flex-direction: column; }
@@ -289,7 +294,7 @@ form { display: flex; flex-direction: column; gap: 15px; margin-top: 20px; }
 @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
 .empty-state {
-    text-align: center; padding: 40px; color: #FFFFFF; /* Texto branco */
+    text-align: center; padding: 40px; color: #FFFFFF; 
 }
 .empty-state p { font-size: 1.1em; }
 
