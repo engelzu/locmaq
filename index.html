@@ -14,7 +14,7 @@
     <div id="home-screen" class="screen active">
         <div class="container">
             <div class="logo">
-                <h1>LocaMaq</h1>
+                <img src="logo.png" alt="LocaMaq Logo" class="logo-img">
                 <p>Locação de Máquinas e Equipamentos</p>
             </div>
             <div class="button-group">
@@ -22,8 +22,8 @@
                     <span class="icon">👤</span> Sou Usuário
                 </button>
                 <button class="btn btn-secondary" onclick="showScreen('renter-login')">
-    <span class="icon">🛠️</span> Sou Locador
-</button>
+                    <span class="icon">🛠️</span> Sou Locador
+                </button>
             </div>
         </div>
     </div>
@@ -53,14 +53,7 @@
                 <input type="tel" id="reg-user-phone" placeholder="Telefone" required />
                 
                 <div class="autocomplete-container">
-                    <input
-                        type="text"
-                        id="reg-user-street"
-                        placeholder="Comece a digitar sua Rua..."
-                        autocomplete="off"
-                        oninput="handleAddressInput(event, 'reg-user-streetList')"
-                        required
-                    />
+                    <input type="text" id="reg-user-street" placeholder="Comece a digitar sua Rua..." autocomplete="off" oninput="handleAddressInput(event, 'reg-user-streetList')" required />
                     <div class="autocomplete-list" id="reg-user-streetList"></div>
                 </div>
                 
@@ -70,12 +63,7 @@
                 
                 <input type="email" id="reg-user-email" placeholder="E-mail" required />
                 <input type="password" id="reg-user-password" placeholder="Senha" required />
-                <input
-                    type="password"
-                    id="reg-user-confirm-password"
-                    placeholder="Confirmar Senha"
-                    required
-                />
+                <input type="password" id="reg-user-confirm-password" placeholder="Confirmar Senha" required />
                 <button type="submit" class="btn btn-primary">Cadastrar</button>
             </form>
         </div>
@@ -122,8 +110,7 @@
                 <button class="btn btn-primary" onclick="searchEquipment()">Pesquisar</button>
             </div>
             
-            <div id="equipment-results" class="results-container">
-            </div>
+            <div id="equipment-results" class="results-container"></div>
             <div id="map" style="height: 400px; margin-top: 20px;"></div>
             <button class="btn-back" onclick="showScreen('user-location-select')">← Alterar Localização</button>
         </div>
@@ -138,13 +125,7 @@
                 <input type="tel" id="edit-user-phone" placeholder="Telefone" required />
                 
                 <div class="autocomplete-container">
-                    <input
-                        type="text"
-                        id="edit-user-street"
-                        placeholder="Digite o novo endereço para alterar..."
-                        autocomplete="off"
-                        oninput="handleAddressInput(event, 'edit-user-streetList')"
-                    />
+                    <input type="text" id="edit-user-street" placeholder="Digite o novo endereço para alterar..." autocomplete="off" oninput="handleAddressInput(event, 'edit-user-streetList')" />
                     <div class="autocomplete-list" id="edit-user-streetList"></div>
                 </div>
 
@@ -183,14 +164,7 @@
                 <input type="tel" id="reg-renter-phone" placeholder="Telefone" required />
 
                  <div class="autocomplete-container">
-                    <input
-                        type="text"
-                        id="reg-renter-street"
-                        placeholder="Comece a digitar sua Rua..."
-                        autocomplete="off"
-                        oninput="handleAddressInput(event, 'reg-renter-streetList')"
-                        required
-                    />
+                    <input type="text" id="reg-renter-street" placeholder="Comece a digitar sua Rua..." autocomplete="off" oninput="handleAddressInput(event, 'reg-renter-streetList')" required />
                     <div class="autocomplete-list" id="reg-renter-streetList"></div>
                 </div>
 
@@ -249,7 +223,7 @@
                     <option value="Bivolt">Bivolt</option>
                     <option value="N/A">Não se aplica</option>
                 </select>
-                <input type="file" id="equipment-image" accept="image/*" />
+                <input type="file" id="equipment-image" accept="image/*" onchange="previewImage(event)" />
                 <div id="image-preview"></div>
                 <button type="submit" class="btn btn-primary">Salvar Equipamento</button>
             </form>
@@ -304,13 +278,7 @@
                 <input type="tel" id="edit-renter-phone" placeholder="Telefone" required />
                 
                 <div class="autocomplete-container">
-                    <input
-                        type="text"
-                        id="edit-renter-street"
-                        placeholder="Digite o novo endereço para alterar..."
-                        autocomplete="off"
-                        oninput="handleAddressInput(event, 'edit-renter-streetList')"
-                    />
+                    <input type="text" id="edit-renter-street" placeholder="Digite o novo endereço para alterar..." autocomplete="off" oninput="handleAddressInput(event, 'edit-renter-streetList')" />
                     <div class="autocomplete-list" id="edit-renter-streetList"></div>
                 </div>
 
@@ -325,10 +293,7 @@
     </div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    
     <script src="https://cdn.jsdelivr.net/npm/appwrite@11.0.0"></script>
-    
     <script src="app.js"></script>
 </body>
-
 </html>
