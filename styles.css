@@ -22,18 +22,57 @@ body {
 .screen.active { display: block; animation: fadeIn 0.3s ease-in; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
 
+/* ====================================================== */
+/* FUNDO DO CONTAINER ATUALIZADO PARA O DEGRADÊ           */
+/* ====================================================== */
 .container {
     max-width: 600px;
     margin: 0 auto;
-    background: white;
+    /* Fundo branco removido e substituído pelo degradê roxo */
+    background: linear-gradient(145deg, #7c4dff, #b388ff); 
     border-radius: 20px;
     padding: 30px;
     box-shadow: var(--shadow-lg);
 }
 
+/* Como o fundo agora é escuro (roxo), precisamos
+  garantir que os textos dentro dele fiquem brancos.
+*/
+.container h1,
+.container h2,
+.container h3,
+.container p,
+.container label,
+.container .links a {
+    color: #FFFFFF; /* Texto branco */
+}
+
+.logo p {
+    color: #E0E0E0; /* Um cinza claro para o subtítulo do logo */
+}
+
+.logo h1 {
+    text-shadow: 0 2px 4px rgba(0,0,0,0.2); /* Sombra de texto mais suave */
+}
+
+/* Ajusta a cor dos inputs para contrastar com o fundo roxo */
+input, textarea, select {
+    background-color: rgba(255, 255, 255, 0.9) !important;
+    border: 2px solid rgba(255, 255, 255, 0.7) !important;
+    color: #333333 !important; /* Texto escuro dentro do input */
+}
+input::placeholder, textarea::placeholder {
+    color: #777777 !important; /* Cor do placeholder */
+}
+input:focus, textarea:focus, select:focus { 
+    outline: none; 
+    border-color: var(--primary-color) !important;
+}
 /* ====================================================== */
-/* CÓDIGO ATUALIZADO PARA O LOGO                          */
+/* FIM DA ALTERAÇÃO DO CONTAINER                          */
 /* ====================================================== */
+
+
 .logo {
     text-align: center; 
     margin-bottom: 30px; 
@@ -44,19 +83,6 @@ body {
     margin-bottom: 15px; 
     border-radius: 10px; 
 }
-.logo h1 { 
-    font-size: 3em; 
-    color: var(--primary-color); 
-    margin-bottom: 10px; 
-    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
-}
-.logo p { 
-    color: var(--gray); 
-    font-size: 1.1em; 
-}
-/* ====================================================== */
-/* FIM DO CÓDIGO DO LOGO                                  */
-/* ====================================================== */
 
 .button-group { display: flex; flex-direction: column; gap: 20px; }
 .btn {
@@ -69,19 +95,14 @@ body {
 .btn-danger { background: var(--danger-color); color: white; margin-top: 20px;}
 .btn-upgrade { background: linear-gradient(135deg, #FFD700, #FFA500); color: var(--dark); margin-top: 20px;}
 .btn-back {
-    background: transparent; border: none; color: var(--secondary-color); font-size: 1em; cursor: pointer;
+    background: transparent; border: none; color: #FFFFFF; /* Texto branco */
+    font-size: 1em; cursor: pointer;
     margin-bottom: 20px; padding: 10px; text-align: left; font-weight: 600;
 }
 .btn-icon { background: var(--light); border: none; font-size: 1.5em; padding: 10px 15px; border-radius: 10px; cursor: pointer; }
 .icon { font-size: 1.5em; margin-right: 10px;}
 
 form { display: flex; flex-direction: column; gap: 15px; margin-top: 20px; }
-input, textarea, select {
-    width: 100%; padding: 15px; border: 2px solid #E0E0E0; border-radius: 10px; font-size: 1em; transition: border 0.3s ease;
-    box-sizing: border-box; 
-}
-input:focus, textarea:focus, select:focus { outline: none; border-color: var(--primary-color);}
-textarea { resize: vertical; min-height: 100px; }
 
 
 /* Estilos para o Autocomplete Manual */
@@ -139,30 +160,24 @@ textarea { resize: vertical; min-height: 100px; }
 
 
 .links { display: flex; justify-content: space-between; margin-top: 20px; }
-.links a { color: var(--secondary-color); text-decoration: none; font-size: 0.9em; }
+/* .links a { color: var(--secondary-color); text-decoration: none; font-size: 0.9em; } (movido para .container a) */
 .links a:hover { text-decoration: underline; }
 
 .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-.header h2 { color: var(--dark); }
+/* .header h2 { color: var(--dark); } (movido para .container h2) */
 
-/* ====================================================== */
-/* CORREÇÃO DO LAYOUT DE BUSCA (Deixa responsivo)         */
-/* ====================================================== */
 .search-box { 
     display: flex; 
-    flex-direction: column; /* Coloca os itens um em cima do outro */
-    gap: 15px; /* Adiciona espaço entre o select e o botão */
+    flex-direction: column; 
+    gap: 15px; 
     margin-bottom: 20px; 
 }
 .search-box select { 
-    /* A regra 'width: 100%' da base já se aplica, 'flex: 1' removido */
+    /* width: 100% */
 } 
 .search-box button { 
-    /* A regra 'width: 100%' e 'padding: 18px' do .btn base já se aplica */
+    /* width: 100% */
 }
-/* ====================================================== */
-/* FIM DA CORREÇÃO                                        */
-/* ====================================================== */
 
 
 .results-container { display: grid; gap: 15px; margin-top: 20px;}
@@ -190,7 +205,8 @@ textarea { resize: vertical; min-height: 100px; }
 .delete-btn { background: var(--danger-color); color: white;}
 
 .plan-info {
-    background: linear-gradient(135deg, var(--secondary-color), #0077B6);
+    background: linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.2));
+    border: 1px solid rgba(255,255,255,0.3);
     color: white; padding: 20px; border-radius: 12px; margin-bottom: 20px; text-align: center;
 }
 .plan-info h3 { margin-bottom: 10px;}
@@ -257,7 +273,7 @@ textarea { resize: vertical; min-height: 100px; }
 @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
 .empty-state {
-    text-align: center; padding: 40px; color: var(--gray);
+    text-align: center; padding: 40px; color: #FFFFFF; /* Texto branco */
 }
 .empty-state p { font-size: 1.1em; }
 
