@@ -38,7 +38,6 @@ body {
 /* Como o fundo agora é escuro (roxo), precisamos
   garantir que os textos dentro dele fiquem brancos.
 */
-.container h1,
 .container h2,
 .container h3,
 .container p,
@@ -47,13 +46,12 @@ body {
     color: #FFFFFF; /* Texto branco */
 }
 
+/* Removi '.logo h1' daqui, pois o h1 foi removido do HTML */
 .logo p {
-    color: #E0E0E0; /* Um cinza claro para o subtítulo do logo */
+    color: #FFFFFF; /* O texto da descrição ficará branco */
+    margin-top: 10px; /* Adiciona um pequeno espaçamento do logo */
 }
 
-.logo h1 {
-    text-shadow: 0 2px 4px rgba(0,0,0,0.2); /* Sombra de texto mais suave */
-}
 
 /* Ajusta a cor dos inputs para contrastar com o fundo roxo */
 input, textarea, select {
@@ -80,7 +78,7 @@ input:focus, textarea:focus, select:focus {
 .logo-img {
     width: 150px; 
     height: auto;
-    margin-bottom: 15px; 
+    margin-bottom: 5px; /* Reduzi a margem inferior para o texto de descrição */
     border-radius: 10px; 
 }
 
@@ -258,7 +256,8 @@ form { display: flex; flex-direction: column; gap: 15px; margin-top: 20px; }
 @media (max-width: 768px) {
     body { padding: 10px; }
     .container { padding: 20px; }
-    .logo h1 { font-size: 2em; }
+    /* Removi esta regra, já que o h1 foi removido */
+    /* .logo h1 { font-size: 2em; } */
     .plans-container { grid-template-columns: 1fr; }
     .equipment-card { flex-direction: column; }
     .equipment-card img { width: 100%; }
