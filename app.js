@@ -803,7 +803,7 @@ function highlightCurrentPlan() {
 }
 
 
-// --- DASHBOARD USUÁRIO (BUSCA COM STATUS) ---
+// --- DASHBOARD USUÁRIO (BUSCA COM STATUS E FILTROS) ---
 
 let map; 
 let markersLayer = L.layerGroup(); 
@@ -871,19 +871,34 @@ async function populateEquipmentDropdown() {
 async function searchEquipment() {
     const state = document.getElementById('user-state-select').value;
     const city = document.getElementById('user-city-select').value;
+    
+    // 1. Captura os valores da busca e filtros
     const searchTerm = document.getElementById('equipment-select').value.toLowerCase();
+    const filterVoltage = document.getElementById('filter-voltage').value;
+    const filterMaxPrice = document.getElementById('filter-max-price').value;
     
     const resultsContainer = document.getElementById('equipment-results');
     resultsContainer.innerHTML = '<div class="spinner"></div>'; 
     markersLayer.clearLayers(); 
 
+    // 2. Monta a query básica (Estado/Cidade)
     const queries = [
         Query.equal('state', state),
         Query.equal('city', city)
     ];
     
+    // 3. Adiciona filtros opcionais se existirem
     if (searchTerm) { 
         queries.push(Query.equal('name', searchTerm));
+    }
+    
+    if (filterVoltage) {
+        queries.push(Query.equal('voltage', filterVoltage));
+    }
+    
+    if (filterMaxPrice) {
+        // Importante: Converte para número para comparar
+        queries.push(Query.lessThanEqual('price', parseFloat(filterMaxPrice)));
     }
     
     try {
@@ -892,7 +907,7 @@ async function searchEquipment() {
 
         if (results.length === 0) {
             const searchName = searchTerm || "qualquer equipamento";
-            resultsContainer.innerHTML = `<div class="empty-state"><p>Nenhum resultado para "${searchName}" em ${city}/${state}.</p></div>`;
+            resultsContainer.innerHTML = `<div class="empty-state"><p>Nenhum resultado para "${searchName}" com esses filtros em ${city}/${state}.</p></div>`;
             map.setView([-15.78, -47.92], 4); 
             return;
         }
@@ -940,7 +955,13 @@ async function searchEquipment() {
         
     } catch (error) {
         console.error("Erro ao pesquisar equipamentos:", error);
-        resultsContainer.innerHTML = `<div class="empty-state"><p>Erro ao realizar a busca.</p></div>`;
+        
+        // Tratamento específico para erro de Índice Faltando
+        if (error.code === 400 && error.message.includes('Index not found')) {
+            showAlert('Erro de Configuração: Falta criar Índices (price/voltage) no Appwrite.');
+        } else {
+            resultsContainer.innerHTML = `<div class="empty-state"><p>Erro ao realizar a busca. (${error.message})</p></div>`;
+        }
     }
 }
 

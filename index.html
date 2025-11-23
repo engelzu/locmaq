@@ -107,6 +107,18 @@
                 <select id="equipment-select" class="w-full">
                     <option value="">-- Carregando equipamentos... --</option>
                 </select>
+                
+                <div class="filters-row">
+                    <select id="filter-voltage">
+                        <option value="">Todas Tensões</option>
+                        <option value="110V">110V</option>
+                        <option value="220V">220V</option>
+                        <option value="380V">380V</option>
+                        <option value="Bivolt">Bivolt</option>
+                    </select>
+                    <input type="number" id="filter-max-price" placeholder="Preço máx (R$)" />
+                </div>
+
                 <button class="btn btn-primary" onclick="searchEquipment()">Pesquisar</button>
             </div>
             
