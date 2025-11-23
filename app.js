@@ -6,6 +6,8 @@ const apiKey = '435bf07fb6d444f8a0ca1af6906f1bce';
 // ======================================================
 const STRIPE_LINK_BASICO = 'https://buy.stripe.com/test_00w9AT3P32hIggO15a5EY01'; 
 const STRIPE_LINK_PREMIUM = 'https://buy.stripe.com/test_00w3cv0CR4pQfcKcNS5EY00'; 
+// ======================================================
+
 
 // ======================================================
 // INICIALIZAÇÃO DO APPWRITE
@@ -40,7 +42,7 @@ let currentSession = {
     profile: null 
 };
 
-// Variáveis do MAPA (Movidas para o topo para evitar erros)
+// Variáveis do MAPA
 let map; 
 let markersLayer = L.layerGroup(); 
 
@@ -419,7 +421,7 @@ async function editEquipment(id) {
 function previewImage(e) {
     if (e.target.files[0]) { const r = new FileReader(); r.onload=(ev)=>document.getElementById('image-preview').innerHTML=`<img src="${ev.target.result}">`; r.readAsDataURL(e.target.files[0]); }
 }
-// Stripe e Planos (selectPlan, highlightCurrentPlan)
+// Stripe e Planos
 async function selectPlan(planName) {
     if (planName === 'free') return showAlert('Você já está no plano Grátis.', 'warning');
     if (!currentSession.isLoggedIn || !currentSession.isRenter) return showAlert("Faça login como locador.");
@@ -443,10 +445,10 @@ function highlightCurrentPlan() {
 }
 
 // ======================================================
-// BUSCA, MAPA E AVALIAÇÕES (AQUI ESTAVA O ERRO)
+// BUSCA, MAPA E AVALIAÇÕES
 // ======================================================
 
-// --- FUNÇÃO QUE FALTAVA: INITIALIZEMAP ---
+// Função para inicializar o mapa (Garanti que está aqui e global)
 function initializeMap() {
     if (map) return; // Se o mapa já existe, não recria
     map = L.map('map').setView([-15.78, -47.92], 4); 
@@ -465,9 +467,9 @@ async function searchRenters(event) {
     
     // 2. Carrega mapa e dados com delay para não travar animação
     setTimeout(async () => {
-        initializeMap(); // Agora a função existe!
+        initializeMap(); 
         try {
-            await populateEquipmentDropdown(); 
+            await populateEquipmentDropdown(); // Chama a função que faltava!
             markersLayer.clearLayers();
             document.getElementById('equipment-results').innerHTML = `<div class="empty-state"><p>Selecione um equipamento e clique em 'Pesquisar'.</p></div>`;
         } catch (error) {
@@ -475,6 +477,37 @@ async function searchRenters(event) {
             showAlert("Erro ao carregar cidades.");
         }
     }, 100);
+}
+
+// A FUNÇÃO QUE FALTAVA FOI ADICIONADA ABAIXO:
+async function populateEquipmentDropdown() {
+    const state = document.getElementById('user-state-select').value;
+    const city = document.getElementById('user-city-select').value;
+    const select = document.getElementById('equipment-select');
+    
+    if (!select) return;
+    select.innerHTML = '<option value="">-- Carregando... --</option>';
+
+    try {
+        const response = await databases.listDocuments(DB_ID, EQUIPMENT_COLLECTION_ID, [
+            Query.equal('state', state),
+            Query.equal('city', city)
+        ]);
+        
+        const equipmentNames = [...new Set(response.documents.map(eq => eq.name))].sort((a, b) => a.localeCompare(b));
+        select.innerHTML = '<option value="">-- Todos os Equipamentos --</option>';
+        
+        if (equipmentNames.length === 0) {
+             select.innerHTML = '<option value="">-- Nenhum equipamento nesta cidade --</option>';
+        } else {
+            equipmentNames.forEach(name => {
+                select.innerHTML += `<option value="${name}">${name}</option>`;
+            });
+        }
+    } catch (error) {
+        console.error("Erro ao popular dropdown:", error);
+        select.innerHTML = '<option value="">-- Erro ao carregar --</option>';
+    }
 }
 
 async function searchEquipment() {
@@ -495,6 +528,7 @@ async function searchEquipment() {
     try {
         const res = await databases.listDocuments(DB_ID, EQUIPMENT_COLLECTION_ID, q);
         
+        // Busca favoritos
         let favs = [];
         if (currentSession.isLoggedIn && !currentSession.isRenter) {
             try {
@@ -543,7 +577,7 @@ async function loadRenterRating(renterId) {
         const res = await databases.listDocuments(DB_ID, REVIEWS_COLLECTION_ID, [Query.equal('renterId', renterId)]);
         const elements = document.querySelectorAll(`#rating-${renterId}`);
         if (res.total === 0) {
-            elements.forEach(el => { el.innerHTML = '<span style="color:#999; font-weight:normal; font-size:0.8rem;">(Sem avaliações)</span>'; el.onclick = null; });
+            elements.forEach(el => { el.innerHTML = '<span style="color:#999; font-weight:normal; font-size:0.8rem;">(Sem avaliações)</span>'; el.onclick = null; el.style.textDecoration = 'none'; });
             return;
         }
         const sum = res.documents.reduce((acc, rev) => acc + rev.stars, 0);
@@ -618,7 +652,7 @@ async function toggleFavorite(equipmentId, btnElement) {
             await databases.createDocument(DB_ID, FAVORITES_COLLECTION_ID, ID.unique(), { userId, equipmentId });
             btnElement.classList.add('active'); btnElement.innerHTML='❤️';
         }
-    } catch (e) { showAlert('Erro favorito.'); }
+    } catch (e) { console.error(e); showAlert('Erro favorito.'); }
 }
 
 async function loadFavoritesScreen() {
