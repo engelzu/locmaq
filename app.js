@@ -37,6 +37,10 @@ let currentSession = {
     account: null, 
     profile: null 
 };
+
+// Variável para o modal de contato
+let currentContactPhone = '';
+
 // ======================================================
 
 // LIMITES DOS PLANOS
@@ -48,7 +52,6 @@ const planLimits = {
 
 // --- INICIALIZAÇÃO ---
 document.addEventListener('DOMContentLoaded', () => {
-    // !! VERIFICAÇÃO DE RECUPERAÇÃO DE SENHA !!
     // Detecta se o usuário chegou clicando no link do e-mail
     const urlParams = new URLSearchParams(window.location.search);
     const userId = urlParams.get('userId');
@@ -288,7 +291,7 @@ async function renterLogin(event) {
 
 // --- FUNÇÕES DE RECUPERAÇÃO DE SENHA ---
 
-// 1. Envia o e-mail (COM TRIM CORRIGIDO)
+// 1. Envia o e-mail
 async function recoverPassword(event, type) {
     event.preventDefault();
     
@@ -902,13 +905,64 @@ async function searchEquipment() {
     }
 }
 
+// --- NOVO: MODAL DE CONTATO ---
+
 async function contactRenter(renterId) {
     try {
+        // Busca os dados do locador
         const renter = await databases.getDocument(DB_ID, RENTERS_COLLECTION_ID, renterId);
-        showAlert(`Contatando ${renter.name}... Telefone: ${renter.phone}`, 'success');
+        
+        // Preenche o Modal
+        document.getElementById('modal-renter-name').textContent = renter.name;
+        document.getElementById('modal-phone-display').textContent = renter.phone;
+        
+        // Salva na variável global para copiar depois
+        currentContactPhone = renter.phone;
+        
+        // Configura o botão de ligar
+        // Limpa o número para deixar apenas dígitos (ex: +551199999...)
+        const cleanPhone = renter.phone.replace(/\D/g, ''); 
+        document.getElementById('btn-action-call').href = `tel:${cleanPhone}`;
+        
+        // Abre o Modal
+        document.getElementById('contact-modal').style.display = 'flex';
+        
     } catch (error) {
         console.error("Erro ao buscar dados do locador:", error);
         showAlert('Erro ao buscar dados do locador.');
+    }
+}
+
+function closeContactModal() {
+    document.getElementById('contact-modal').style.display = 'none';
+}
+
+function copyPhoneNumber() {
+    if (!currentContactPhone) return;
+    
+    navigator.clipboard.writeText(currentContactPhone).then(() => {
+        const btn = document.querySelector('.btn-copy');
+        const originalText = btn.innerHTML;
+        
+        btn.innerHTML = '<span class="icon">✅</span> Copiado!';
+        btn.style.backgroundColor = '#dcfce7';
+        
+        setTimeout(() => {
+            btn.innerHTML = originalText;
+            btn.style.backgroundColor = '#e2e8f0';
+        }, 2000);
+        
+    }).catch(err => {
+        console.error('Erro ao copiar: ', err);
+        showAlert('Erro ao copiar número.');
+    });
+}
+
+// Fecha o modal se clicar fora da área branca
+window.onclick = function(event) {
+    const modal = document.getElementById('contact-modal');
+    if (event.target === modal) {
+        closeContactModal();
     }
 }
 
