@@ -877,7 +877,7 @@ async function searchEquipment() {
                     <p>${eq.description}</p>
                     <p>Tensão: ${eq.voltage}</p>
                     <p class="price">R$ ${eq.price} / dia</p>
-                    <button class="btn btn-secondary contact-btn" onclick="contactRenter('${eq.renterId}')">
+                    <button class="btn btn-secondary contact-btn" onclick="contactRenter('${eq.renterId}', '${eq.name}')">
                         <span class="icon">📞</span> Contato
                     </button>
                 </div>
@@ -905,9 +905,9 @@ async function searchEquipment() {
     }
 }
 
-// --- NOVO: MODAL DE CONTATO ---
+// --- MODAL DE CONTATO (AGORA COM WHATSAPP) ---
 
-async function contactRenter(renterId) {
+async function contactRenter(renterId, equipmentName) {
     try {
         // Busca os dados do locador
         const renter = await databases.getDocument(DB_ID, RENTERS_COLLECTION_ID, renterId);
@@ -919,10 +919,20 @@ async function contactRenter(renterId) {
         // Salva na variável global para copiar depois
         currentContactPhone = renter.phone;
         
-        // Configura o botão de ligar
-        // Limpa o número para deixar apenas dígitos (ex: +551199999...)
+        // 1. Limpa o número para deixar apenas dígitos
         const cleanPhone = renter.phone.replace(/\D/g, ''); 
+        
+        // 2. Configura botão de LIGAR
         document.getElementById('btn-action-call').href = `tel:${cleanPhone}`;
+
+        // 3. Configura botão de WHATSAPP (NOVO)
+        // Cria a mensagem automática
+        const textMessage = `Olá ${renter.name}, vi seu equipamento "${equipmentName}" no LocaMaq e tenho interesse.`;
+        const encodedMessage = encodeURIComponent(textMessage);
+        
+        // O link final (Assumindo código do Brasil 55 se o usuário não digitar)
+        // Se o usuário já cadastrou com 55, não tem problema, o zap entende.
+        document.getElementById('btn-action-whatsapp').href = `https://wa.me/55${cleanPhone}?text=${encodedMessage}`;
         
         // Abre o Modal
         document.getElementById('contact-modal').style.display = 'flex';
