@@ -30,6 +30,9 @@ const RENTERS_COLLECTION_ID = 'locations';
 const EQUIPMENT_COLLECTION_ID = 'products';
 const BUCKET_ID = 'product-images';
 
+// ⚠️ ID CONFIGURADO CONFORME SEU PRINT ⚠️
+const FAVORITES_COLLECTION_ID = 'favorites'; 
+
 // Variáveis de sessão globais
 let currentSession = {
     isLoggedIn: false,
@@ -128,6 +131,9 @@ function showScreen(screenId) {
     }
      if (screenId === 'upgrade-plan') {
         highlightCurrentPlan();
+    }
+    if (screenId === 'user-favorites') {
+        loadFavoritesScreen(); // Carrega a lista de favoritos
     }
     
     const element = document.getElementById(screenId);
@@ -868,6 +874,123 @@ async function populateEquipmentDropdown() {
     }
 }
 
+// --- FAVORITOS: FUNÇÕES PRINCIPAIS (NOVO) ---
+
+// 1. Togglar (Curtir/Descurtir)
+async function toggleFavorite(equipmentId, btnElement) {
+    if (!currentSession.isLoggedIn || currentSession.isRenter) {
+        return showAlert('Faça login como usuário para favoritar.');
+    }
+    
+    const userId = currentSession.account.$id;
+    const isActive = btnElement.classList.contains('active');
+
+    try {
+        if (isActive) {
+            // REMOVER FAVORITO
+            const response = await databases.listDocuments(
+                DB_ID, 
+                FAVORITES_COLLECTION_ID, 
+                [
+                    Query.equal('userId', userId),
+                    Query.equal('equipmentId', equipmentId)
+                ]
+            );
+            
+            if (response.documents.length > 0) {
+                const favDocId = response.documents[0].$id;
+                await databases.deleteDocument(DB_ID, FAVORITES_COLLECTION_ID, favDocId);
+                
+                btnElement.classList.remove('active');
+                btnElement.innerHTML = '🤍'; // Coração vazio
+                
+                // Se estiver na tela de favoritos, remove o card
+                const currentScreen = document.querySelector('.screen.active').id;
+                if (currentScreen === 'user-favorites') {
+                    loadFavoritesScreen(); // Recarrega a lista
+                }
+            }
+        } else {
+            // ADICIONAR FAVORITO
+            await databases.createDocument(
+                DB_ID, 
+                FAVORITES_COLLECTION_ID, 
+                ID.unique(), 
+                {
+                    userId: userId,
+                    equipmentId: equipmentId
+                }
+            );
+            btnElement.classList.add('active');
+            btnElement.innerHTML = '❤️'; // Coração cheio
+        }
+    } catch (error) {
+        console.error("Erro ao favoritar:", error);
+        showAlert('Erro ao atualizar favoritos.');
+    }
+}
+
+// 2. Carregar Tela de Favoritos
+async function loadFavoritesScreen() {
+    const listContainer = document.getElementById('favorites-list');
+    listContainer.innerHTML = '<div class="spinner"></div>';
+    
+    if (!currentSession.isLoggedIn || currentSession.isRenter) return;
+    const userId = currentSession.account.$id;
+
+    try {
+        // Busca os favoritos do usuário
+        const favResponse = await databases.listDocuments(DB_ID, FAVORITES_COLLECTION_ID, [
+            Query.equal('userId', userId)
+        ]);
+        
+        if (favResponse.documents.length === 0) {
+            listContainer.innerHTML = '<div class="empty-state"><p>Você ainda não tem favoritos.</p></div>';
+            return;
+        }
+
+        listContainer.innerHTML = '';
+        
+        // Para cada favorito, busca os detalhes do produto
+        for (const fav of favResponse.documents) {
+            try {
+                const eq = await databases.getDocument(DB_ID, EQUIPMENT_COLLECTION_ID, fav.equipmentId);
+                
+                const imageUrl = eq.imageUrl || 'https://via.placeholder.com/300x200';
+                const isAvailable = (eq.isAvailable !== false);
+                const cardClass = isAvailable ? '' : 'card-unavailable';
+                const statusLabel = isAvailable ? '' : '<span class="status-badge status-rented">ALUGADO</span>';
+                const contactBtnStyle = isAvailable ? 'btn-secondary' : 'btn-secondary disabled';
+
+                listContainer.innerHTML += `
+                    <div class="result-card ${cardClass}">
+                        <div class="card-image-container">
+                            <img src="${imageUrl}" alt="${eq.name}">
+                            <button class="btn-favorite active" onclick="toggleFavorite('${eq.$id}', this)">❤️</button>
+                        </div>
+                        ${statusLabel}
+                        <h3>${eq.name}</h3>
+                        <p><strong>${eq.renterName}</strong> - ${eq.city}/${eq.state}</p>
+                        <p class="price">R$ ${eq.price} / dia</p>
+                        <button class="btn ${contactBtnStyle} contact-btn" onclick="contactRenter('${eq.renterId}', '${eq.name}')">
+                            <span class="icon">📞</span> Contato
+                        </button>
+                    </div>
+                `;
+            } catch (e) {
+                console.warn("Equipamento favorito não encontrado (talvez excluído):", fav.equipmentId);
+                // Opcional: Limpar favorito órfão aqui
+            }
+        }
+        
+    } catch (error) {
+        console.error("Erro ao carregar favoritos:", error);
+        listContainer.innerHTML = '<div class="empty-state"><p>Erro ao carregar favoritos.</p></div>';
+    }
+}
+
+// --- FUNÇÃO DE BUSCA ATUALIZADA PARA MOSTRAR CORAÇÃO ---
+
 async function searchEquipment() {
     const state = document.getElementById('user-state-select').value;
     const city = document.getElementById('user-city-select').value;
@@ -881,27 +1004,19 @@ async function searchEquipment() {
     resultsContainer.innerHTML = '<div class="spinner"></div>'; 
     markersLayer.clearLayers(); 
 
-    // 2. Monta a query básica (Estado/Cidade)
+    // 2. Query básica
     const queries = [
         Query.equal('state', state),
         Query.equal('city', city)
     ];
     
-    // 3. Adiciona filtros opcionais se existirem
-    if (searchTerm) { 
-        queries.push(Query.equal('name', searchTerm));
-    }
-    
-    if (filterVoltage) {
-        queries.push(Query.equal('voltage', filterVoltage));
-    }
-    
-    if (filterMaxPrice) {
-        // Importante: Converte para número para comparar
-        queries.push(Query.lessThanEqual('price', parseFloat(filterMaxPrice)));
-    }
+    // 3. Filtros opcionais
+    if (searchTerm) { queries.push(Query.equal('name', searchTerm)); }
+    if (filterVoltage) { queries.push(Query.equal('voltage', filterVoltage)); }
+    if (filterMaxPrice) { queries.push(Query.lessThanEqual('price', parseFloat(filterMaxPrice))); }
     
     try {
+        // BUSCA OS EQUIPAMENTOS
         const response = await databases.listDocuments(DB_ID, EQUIPMENT_COLLECTION_ID, queries);
         const results = response.documents;
 
@@ -910,6 +1025,19 @@ async function searchEquipment() {
             resultsContainer.innerHTML = `<div class="empty-state"><p>Nenhum resultado para "${searchName}" com esses filtros em ${city}/${state}.</p></div>`;
             map.setView([-15.78, -47.92], 4); 
             return;
+        }
+
+        // !! NOVO: BUSCA OS FAVORITOS DO USUÁRIO PARA PINTAR O CORAÇÃO !!
+        let userFavoritesIds = [];
+        if (currentSession.isLoggedIn && !currentSession.isRenter) {
+            try {
+                const favResponse = await databases.listDocuments(DB_ID, FAVORITES_COLLECTION_ID, [
+                    Query.equal('userId', currentSession.account.$id)
+                ]);
+                userFavoritesIds = favResponse.documents.map(fav => fav.equipmentId);
+            } catch (e) {
+                console.log("Erro ao buscar favoritos (talvez não logado ou sem permissão):", e);
+            }
         }
 
         resultsContainer.innerHTML = ''; 
@@ -922,11 +1050,22 @@ async function searchEquipment() {
             const isAvailable = (eq.isAvailable !== false);
             const cardClass = isAvailable ? '' : 'card-unavailable';
             const statusLabel = isAvailable ? '' : '<span class="status-badge status-rented">ALUGADO</span>';
-            const contactBtnStyle = isAvailable ? 'btn-secondary' : 'btn-secondary disabled'; // Apenas visual
+            const contactBtnStyle = isAvailable ? 'btn-secondary' : 'btn-secondary disabled';
             
+            // Verifica se é favorito
+            const isFav = userFavoritesIds.includes(eq.$id);
+            const heartIcon = isFav ? '❤️' : '🤍';
+            const heartClass = isFav ? 'active' : '';
+
             resultsContainer.innerHTML += `
                 <div class="result-card ${cardClass}">
-                    <img src="${imageUrl}" alt="${eq.name}">
+                    <div class="card-image-container">
+                        <img src="${imageUrl}" alt="${eq.name}">
+                        <button class="btn-favorite ${heartClass}" onclick="toggleFavorite('${eq.$id}', this)">
+                            ${heartIcon}
+                        </button>
+                    </div>
+                    
                     ${statusLabel}
                     <h3>${eq.name}</h3>
                     <p><strong>${eq.renterName}</strong> - ${eq.city}/${eq.state}</p>
@@ -956,7 +1095,6 @@ async function searchEquipment() {
     } catch (error) {
         console.error("Erro ao pesquisar equipamentos:", error);
         
-        // Tratamento específico para erro de Índice Faltando
         if (error.code === 400 && error.message.includes('Index not found')) {
             showAlert('Erro de Configuração: Falta criar Índices (price/voltage) no Appwrite.');
         } else {

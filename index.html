@@ -100,7 +100,10 @@
         <div class="container">
             <div class="header">
                 <h2>Buscar Equipamentos</h2>
-                <button class="btn-icon" onclick="showScreen('user-profile')">⚙️</button>
+                <div class="header-icons">
+                    <button class="btn-icon" onclick="showScreen('user-favorites')" title="Meus Favoritos">❤️</button>
+                    <button class="btn-icon" onclick="showScreen('user-profile')" title="Meu Perfil">⚙️</button>
+                </div>
             </div>
             
             <div class="search-box">
@@ -125,6 +128,16 @@
             <div id="equipment-results" class="results-container"></div>
             <div id="map" style="height: 400px; margin-top: 20px;"></div>
             <button class="btn-back" onclick="showScreen('user-location-select')">← Alterar Localização</button>
+        </div>
+    </div>
+
+    <div id="user-favorites" class="screen">
+        <div class="container">
+            <button class="btn-back" onclick="showScreen('user-dashboard')">← Voltar</button>
+            <h2>Meus Favoritos ❤️</h2>
+            <div id="favorites-list" class="results-container">
+                <div class="spinner"></div>
+            </div>
         </div>
     </div>
 
