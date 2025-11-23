@@ -6,8 +6,6 @@ const apiKey = '435bf07fb6d444f8a0ca1af6906f1bce';
 // ======================================================
 const STRIPE_LINK_BASICO = 'https://buy.stripe.com/test_00w9AT3P32hIggO15a5EY01'; 
 const STRIPE_LINK_PREMIUM = 'https://buy.stripe.com/test_00w3cv0CR4pQfcKcNS5EY00'; 
-// ======================================================
-
 
 // ======================================================
 // INICIALIZAÇÃO DO APPWRITE
@@ -32,7 +30,9 @@ const BUCKET_ID = 'product-images';
 const FAVORITES_COLLECTION_ID = 'favorites'; 
 const REVIEWS_COLLECTION_ID = 'reviews'; 
 
-// Variáveis de sessão globais
+// ======================================================
+// VARIÁVEIS GLOBAIS
+// ======================================================
 let currentSession = {
     isLoggedIn: false,
     isRenter: false,
@@ -40,21 +40,25 @@ let currentSession = {
     profile: null 
 };
 
-// Variáveis temporárias
+// Variáveis do MAPA (Movidas para o topo para evitar erros)
+let map; 
+let markersLayer = L.layerGroup(); 
+
+// Variáveis Temporárias
 let currentContactPhone = '';
 let currentReviewRenterId = '';
 let currentRating = 0;
 
-// ======================================================
-
-// LIMITES DOS PLANOS
+// Limites dos Planos
 const planLimits = {
     free: { max: 1, editLock: true },
     basic: { max: 10, editLock: false },
     premium: { max: 20, editLock: false }
 };
 
-// --- INICIALIZAÇÃO ---
+// ======================================================
+// INICIALIZAÇÃO DO SISTEMA
+// ======================================================
 document.addEventListener('DOMContentLoaded', () => {
     const urlParams = new URLSearchParams(window.location.search);
     const userId = urlParams.get('userId');
@@ -107,9 +111,9 @@ async function initializeApp() {
     }
 }
 
-
-// --- NAVEGAÇÃO E ALERTAS ---
-
+// ======================================================
+// NAVEGAÇÃO E ALERTAS
+// ======================================================
 function showScreen(screenId) {
     document.querySelectorAll('.screen').forEach(screen => {
         screen.classList.remove('active');
@@ -129,7 +133,8 @@ function showScreen(screenId) {
         console.error(`Erro: Tela com ID '${screenId}' não encontrada.`);
     }
 
-    if (screenId === 'user-dashboard' && map) {
+    // Correção do erro "map.invalidateSize"
+    if (screenId === 'user-dashboard' && map && typeof map.invalidateSize === 'function') {
         setTimeout(() => { map.invalidateSize(); }, 100); 
     }
 }
@@ -142,8 +147,9 @@ function showAlert(message, type = 'error') {
     setTimeout(() => { alertBox.style.display = 'none'; }, 6000);
 }
 
-
-// --- AUTENTICAÇÃO E SESSÃO ---
+// ======================================================
+// AUTENTICAÇÃO E SESSÃO
+// ======================================================
 
 async function userRegister(event) {
     event.preventDefault();
@@ -253,7 +259,9 @@ async function logout() {
     showScreen('home-screen');
 }
 
-// --- PERFIS ---
+// ======================================================
+// PERFIS
+// ======================================================
 function loadUserProfile() {
     if (!currentSession.isLoggedIn || currentSession.isRenter) return;
     const u = currentSession.profile;
@@ -311,7 +319,9 @@ async function updateRenterProfile(event) {
     } catch (e) { showAlert(`Erro: ${e.message}`); }
 }
 
-// --- DASHBOARD LOCADOR ---
+// ======================================================
+// DASHBOARD LOCADOR
+// ======================================================
 async function loadRenterDashboard() {
     if (!currentSession.isLoggedIn || !currentSession.isRenter) return;
     try { currentSession.profile = await databases.getDocument(DB_ID, RENTERS_COLLECTION_ID, currentSession.account.$id); } catch (e) { logout(); }
@@ -409,30 +419,60 @@ async function editEquipment(id) {
 function previewImage(e) {
     if (e.target.files[0]) { const r = new FileReader(); r.onload=(ev)=>document.getElementById('image-preview').innerHTML=`<img src="${ev.target.result}">`; r.readAsDataURL(e.target.files[0]); }
 }
-// Stripe e Planos mantidos iguais... (selectPlan, highlightCurrentPlan)
+// Stripe e Planos (selectPlan, highlightCurrentPlan)
+async function selectPlan(planName) {
+    if (planName === 'free') return showAlert('Você já está no plano Grátis.', 'warning');
+    if (!currentSession.isLoggedIn || !currentSession.isRenter) return showAlert("Faça login como locador.");
+    const renter = currentSession.profile;
+    let stripeUrl = (planName === 'basic') ? STRIPE_LINK_BASICO : STRIPE_LINK_PREMIUM;
+    if (!stripeUrl || !stripeUrl.startsWith('https://')) return showAlert('Link de pagamento não configurado.', 'error');
+    try {
+        const url = new URL(stripeUrl);
+        url.searchParams.append('prefilled_email', renter.email);
+        url.searchParams.append('client_reference_id', renter.$id); 
+        window.location.href = url.toString();
+    } catch (error) { showAlert("Erro ao processar pagamento."); }
+}
+function highlightCurrentPlan() {
+    const renter = currentSession.profile;
+    document.getElementById('btn-plan-free').textContent = 'Selecionar';
+    document.getElementById('btn-plan-basic').textContent = 'Assinar';
+    document.getElementById('btn-plan-premium').textContent = 'Assinar';
+    const currentPlanBtn = document.getElementById(`btn-plan-${renter.plan}`);
+    if (currentPlanBtn) { currentPlanBtn.textContent = 'Plano Atual'; currentPlanBtn.disabled = true; }
+}
 
-// --- BUSCA USUÁRIO & SISTEMA DE AVALIAÇÃO ---
+// ======================================================
+// BUSCA, MAPA E AVALIAÇÕES (AQUI ESTAVA O ERRO)
+// ======================================================
+
+// --- FUNÇÃO QUE FALTAVA: INITIALIZEMAP ---
+function initializeMap() {
+    if (map) return; // Se o mapa já existe, não recria
+    map = L.map('map').setView([-15.78, -47.92], 4); 
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap'
+    }).addTo(map);
+    markersLayer.addTo(map);
+}
 
 async function searchRenters(event) {
     event.preventDefault();
     
-    // 1. Muda a tela IMEDIATAMENTE (para não parecer travado)
+    // 1. Muda a tela IMEDIATAMENTE
     showScreen('user-dashboard');
-    
-    // 2. Mostra carregando
     document.getElementById('equipment-results').innerHTML = '<div class="spinner"></div>';
     
-    // 3. Inicializa o mapa e busca dados (DEFERIDO PARA NÃO TRAVAR A UI)
+    // 2. Carrega mapa e dados com delay para não travar animação
     setTimeout(async () => {
-        initializeMap();
+        initializeMap(); // Agora a função existe!
         try {
             await populateEquipmentDropdown(); 
-            // Limpa os marcadores anteriores
             markersLayer.clearLayers();
             document.getElementById('equipment-results').innerHTML = `<div class="empty-state"><p>Selecione um equipamento e clique em 'Pesquisar'.</p></div>`;
         } catch (error) {
-            console.error("Erro ao preparar busca:", error);
-            showAlert("Erro ao carregar dados da cidade. Verifique sua conexão.");
+            console.error("Erro busca:", error);
+            showAlert("Erro ao carregar cidades.");
         }
     }, 100);
 }
@@ -455,7 +495,6 @@ async function searchEquipment() {
     try {
         const res = await databases.listDocuments(DB_ID, EQUIPMENT_COLLECTION_ID, q);
         
-        // Busca favoritos
         let favs = [];
         if (currentSession.isLoggedIn && !currentSession.isRenter) {
             try {
@@ -471,7 +510,6 @@ async function searchEquipment() {
             const isAv = (eq.isAvailable !== false);
             const isFav = favs.includes(eq.$id);
             
-            // Adiciona Card com Placeholder de Estrelas
             const div = document.createElement('div');
             div.className = `result-card ${isAv?'':'card-unavailable'}`;
             div.innerHTML = `
@@ -481,18 +519,16 @@ async function searchEquipment() {
                 </div>
                 ${isAv?'':'<span class="status-badge status-rented">ALUGADO</span>'}
                 <h3>${eq.name}</h3>
-                <div id="rating-${eq.renterId}" class="rating-display">⭐ Carregando nota...</div>
+                <div id="rating-${eq.renterId}" class="rating-display">⭐ ...</div>
                 <p><strong>${eq.renterName}</strong> - ${eq.city}</p>
                 <p>${eq.description}</p>
-                <p class="price">R$ ${eq.price} / dia</p>
+                <p class="price">R$ ${eq.price.toFixed(2)} / dia</p>
                 <button class="btn ${isAv?'btn-secondary':'btn-secondary disabled'} contact-btn" onclick="contactRenter('${eq.renterId}', '${eq.name}')">📞 Contato</button>
                 <button class="btn btn-rate" onclick="openReviewModal('${eq.renterId}')" style="margin-top:5px; font-size:0.8rem;">⭐ Avaliar Locador</button>
             `;
             resDiv.appendChild(div);
 
             if (eq.lat) { const ll=[eq.lat, eq.lng]; L.marker(ll).addTo(markersLayer).bindPopup(eq.name); bounds.push(ll); }
-            
-            // Carrega a nota de forma assíncrona para não travar a lista
             loadRenterRating(eq.renterId); 
         }
         if (bounds.length) map.fitBounds(bounds, {padding:[50,50]});
@@ -500,146 +536,108 @@ async function searchEquipment() {
     } catch (e) { console.error(e); resDiv.innerHTML = '<p>Erro na busca.</p>'; }
 }
 
-// --- LÓGICA DE AVALIAÇÃO (ESTRELAS) ---
+// --- SISTEMA DE AVALIAÇÃO ---
 
 async function loadRenterRating(renterId) {
     try {
-        // Busca todas as avaliações desse locador
-        const res = await databases.listDocuments(DB_ID, REVIEWS_COLLECTION_ID, [
-            Query.equal('renterId', renterId)
-        ]);
-        
+        const res = await databases.listDocuments(DB_ID, REVIEWS_COLLECTION_ID, [Query.equal('renterId', renterId)]);
         const elements = document.querySelectorAll(`#rating-${renterId}`);
-        
         if (res.total === 0) {
-            elements.forEach(el => {
-                el.innerHTML = '<span style="color:#999; font-weight:normal; font-size:0.8rem;">(Sem avaliações)</span>';
-                el.style.cursor = 'default';
-                el.style.textDecoration = 'none';
-                el.onclick = null;
-            });
+            elements.forEach(el => { el.innerHTML = '<span style="color:#999; font-weight:normal; font-size:0.8rem;">(Sem avaliações)</span>'; el.onclick = null; });
             return;
         }
-
-        // Calcula Média
         const sum = res.documents.reduce((acc, rev) => acc + rev.stars, 0);
         const avg = (sum / res.total).toFixed(1);
-        
-        // Agora o texto é clicável e abre os comentários
         elements.forEach(el => {
             el.innerHTML = `⭐ <strong>${avg}</strong> <span style="font-size:0.8rem; color:#64748b;">(${res.total} ver comentários)</span>`;
             el.onclick = () => openReadReviewsModal(renterId);
         });
-
-    } catch (error) {
-        console.error("Erro ao carregar nota:", error);
-    }
+    } catch (error) { console.error("Erro nota:", error); }
 }
 
 function openReviewModal(renterId) {
-    if (!currentSession.isLoggedIn || currentSession.isRenter) return showAlert('Faça login como usuário para avaliar.');
-    currentReviewRenterId = renterId;
-    currentRating = 0;
+    if (!currentSession.isLoggedIn || currentSession.isRenter) return showAlert('Faça login como usuário.');
+    currentReviewRenterId = renterId; currentRating = 0;
     document.getElementById('review-comment').value = '';
     updateStarVisuals(0);
     document.getElementById('review-modal').style.display = 'flex';
 }
-
-function closeReviewModal() {
-    document.getElementById('review-modal').style.display = 'none';
-}
-
-function selectStar(n) {
-    currentRating = n;
-    updateStarVisuals(n);
-}
-
+function closeReviewModal() { document.getElementById('review-modal').style.display = 'none'; }
+function selectStar(n) { currentRating = n; updateStarVisuals(n); }
 function updateStarVisuals(n) {
-    const stars = document.querySelectorAll('.star-rating-input .star');
-    stars.forEach((star, index) => {
-        if (index < n) star.classList.add('filled');
-        else star.classList.remove('filled');
+    document.querySelectorAll('.star-rating-input .star').forEach((s, i) => {
+        if (i < n) s.classList.add('filled'); else s.classList.remove('filled');
     });
 }
-
 async function submitReview() {
     if (currentRating === 0) return showAlert('Selecione as estrelas!');
-    
     try {
         await databases.createDocument(DB_ID, REVIEWS_COLLECTION_ID, ID.unique(), {
-            renterId: currentReviewRenterId,
-            userId: currentSession.account.$id,
-            userName: currentSession.profile.name, // Salva o nome
-            stars: currentRating,
+            renterId: currentReviewRenterId, userId: currentSession.account.$id,
+            userName: currentSession.profile.name, stars: currentRating,
             comment: document.getElementById('review-comment').value
         });
-        
-        showAlert('Avaliação enviada!', 'success');
-        closeReviewModal();
-        loadRenterRating(currentReviewRenterId); // Atualiza visualmente
-        
-    } catch (error) {
-        console.error(error);
-        showAlert('Erro ao enviar avaliação.');
-    }
+        showAlert('Avaliação enviada!', 'success'); closeReviewModal(); loadRenterRating(currentReviewRenterId);
+    } catch (e) { showAlert('Erro ao enviar.'); }
 }
 
-// 2. Modal de LER avaliações (NOVO)
 async function openReadReviewsModal(renterId) {
     const container = document.getElementById('reviews-list-container');
     container.innerHTML = '<div class="spinner"></div>';
     document.getElementById('read-reviews-modal').style.display = 'flex';
-
     try {
-        // Busca as avaliações do locador (ordenadas das mais recentes)
         const response = await databases.listDocuments(DB_ID, REVIEWS_COLLECTION_ID, [
-            Query.equal('renterId', renterId),
-            Query.orderDesc('$createdAt'),
-            Query.limit(20)
+            Query.equal('renterId', renterId), Query.orderDesc('$createdAt'), Query.limit(20)
         ]);
-
         container.innerHTML = '';
-
-        if (response.documents.length === 0) {
-            container.innerHTML = '<p style="text-align:center; color:#999;">Nenhum comentário ainda.</p>';
-            return;
-        }
-
+        if (response.documents.length === 0) { container.innerHTML = '<p style="text-align:center;">Sem comentários.</p>'; return; }
         response.documents.forEach(review => {
-            // Cria as estrelas visuais (ex: ★★★☆☆)
-            let starsDisplay = '';
-            for(let i=0; i<5; i++) {
-                starsDisplay += (i < review.stars) ? '★' : '☆';
-            }
-
-            // Formata a data
-            const date = new Date(review.$createdAt).toLocaleDateString('pt-BR');
-            const userName = review.userName || 'Usuário Anônimo';
-            const comment = review.comment || '<i>Sem comentário escrito.</i>';
-
+            let starsDisplay = ''; for(let i=0; i<5; i++) starsDisplay += (i < review.stars) ? '★' : '☆';
             container.innerHTML += `
                 <div class="review-item">
-                    <div class="review-header">
-                        <span class="review-user">${userName}</span>
-                        <span class="review-stars">${starsDisplay}</span>
-                    </div>
-                    <div class="review-text">${comment}</div>
-                    <div class="review-date">${date}</div>
-                </div>
-            `;
+                    <div class="review-header"><span class="review-user">${review.userName||'Anônimo'}</span><span class="review-stars">${starsDisplay}</span></div>
+                    <div class="review-text">${review.comment||''}</div>
+                    <div class="review-date">${new Date(review.$createdAt).toLocaleDateString('pt-BR')}</div>
+                </div>`;
         });
+    } catch (e) { container.innerHTML = '<p>Erro.</p>'; }
+}
+function closeReadReviewsModal() { document.getElementById('read-reviews-modal').style.display = 'none'; }
 
-    } catch (error) {
-        console.error("Erro ao ler avaliações:", error);
-        container.innerHTML = '<p style="text-align:center; color:red;">Erro ao carregar.</p>';
-    }
+// --- FAVORITOS & AUXILIARES ---
+
+async function toggleFavorite(equipmentId, btnElement) {
+    if (!currentSession.isLoggedIn || currentSession.isRenter) return showAlert('Faça login como usuário.');
+    const userId = currentSession.account.$id;
+    const isActive = btnElement.classList.contains('active');
+    try {
+        if (isActive) {
+            const res = await databases.listDocuments(DB_ID, FAVORITES_COLLECTION_ID, [Query.equal('userId', userId), Query.equal('equipmentId', equipmentId)]);
+            if (res.documents.length > 0) { await databases.deleteDocument(DB_ID, FAVORITES_COLLECTION_ID, res.documents[0].$id); btnElement.classList.remove('active'); btnElement.innerHTML='🤍'; if(document.querySelector('.screen.active').id === 'user-favorites') loadFavoritesScreen(); }
+        } else {
+            await databases.createDocument(DB_ID, FAVORITES_COLLECTION_ID, ID.unique(), { userId, equipmentId });
+            btnElement.classList.add('active'); btnElement.innerHTML='❤️';
+        }
+    } catch (e) { showAlert('Erro favorito.'); }
 }
 
-function closeReadReviewsModal() {
-    document.getElementById('read-reviews-modal').style.display = 'none';
+async function loadFavoritesScreen() {
+    const list = document.getElementById('favorites-list');
+    list.innerHTML = '<div class="spinner"></div>';
+    if (!currentSession.isLoggedIn || currentSession.isRenter) return;
+    try {
+        const favs = await databases.listDocuments(DB_ID, FAVORITES_COLLECTION_ID, [Query.equal('userId', currentSession.account.$id)]);
+        if (favs.total === 0) { list.innerHTML = '<p>Sem favoritos.</p>'; return; }
+        list.innerHTML = '';
+        for (const f of favs.documents) {
+            try {
+                const eq = await databases.getDocument(DB_ID, EQUIPMENT_COLLECTION_ID, f.equipmentId);
+                list.innerHTML += `<div class="result-card"><div class="card-image-container"><img src="${eq.imageUrl||'https://via.placeholder.com/120'}" alt="${eq.name}"><button class="btn-favorite active" onclick="toggleFavorite('${eq.$id}', this)">❤️</button></div><h3>${eq.name}</h3><p>R$ ${eq.price}</p><button class="btn btn-secondary" onclick="contactRenter('${eq.renterId}', '${eq.name}')">Contato</button></div>`;
+            } catch(e){}
+        }
+    } catch (e) { list.innerHTML = '<p>Erro.</p>'; }
 }
 
-// --- FUNÇÕES AUXILIARES RESTANTES (Geoapify, Favorites, Contact) ---
 async function contactRenter(renterId, equipmentName) {
     try {
         const renter = await databases.getDocument(DB_ID, RENTERS_COLLECTION_ID, renterId);
@@ -652,137 +650,61 @@ async function contactRenter(renterId, equipmentName) {
         document.getElementById('contact-modal').style.display = 'flex';
     } catch (e) { showAlert('Erro ao carregar locador.'); }
 }
-
-async function toggleFavorite(equipmentId, btnElement) {
-    if (!currentSession.isLoggedIn || currentSession.isRenter) return showAlert('Faça login como usuário.');
-    const userId = currentSession.account.$id;
-    const isActive = btnElement.classList.contains('active');
-    try {
-        if (isActive) {
-            const res = await databases.listDocuments(DB_ID, FAVORITES_COLLECTION_ID, [Query.equal('userId', userId), Query.equal('equipmentId', equipmentId)]);
-            if (res.documents.length > 0) { await databases.deleteDocument(DB_ID, FAVORITES_COLLECTION_ID, res.documents[0].$id); btnElement.classList.remove('active'); btnElement.innerHTML='🤍'; }
-        } else {
-            await databases.createDocument(DB_ID, FAVORITES_COLLECTION_ID, ID.unique(), { userId, equipmentId });
-            btnElement.classList.add('active'); btnElement.innerHTML='❤️';
-        }
-    } catch (e) { console.error(e); showAlert('Erro favorito.'); }
+function closeContactModal() { document.getElementById('contact-modal').style.display = 'none'; }
+function copyPhoneNumber() {
+    if (!currentContactPhone) return;
+    navigator.clipboard.writeText(currentContactPhone).then(() => {
+        const btn = document.querySelector('.btn-copy');
+        btn.innerHTML = '✅ Copiado!'; btn.style.backgroundColor = '#dcfce7';
+        setTimeout(() => { btn.innerHTML = '📋 Copiar Número'; btn.style.backgroundColor = '#e2e8f0'; }, 2000);
+    });
 }
-
-async function loadFavoritesScreen() {
-    const list = document.getElementById('favorites-list');
-    list.innerHTML = '<div class="spinner"></div>';
-    if (!currentSession.isLoggedIn || currentSession.isRenter) return;
-    
-    try {
-        const favs = await databases.listDocuments(DB_ID, FAVORITES_COLLECTION_ID, [Query.equal('userId', currentSession.account.$id)]);
-        if (favs.total === 0) { list.innerHTML = '<p>Sem favoritos.</p>'; return; }
-        
-        list.innerHTML = '';
-        for (const f of favs.documents) {
-            try {
-                const eq = await databases.getDocument(DB_ID, EQUIPMENT_COLLECTION_ID, f.equipmentId);
-                
-                const imageUrl = eq.imageUrl || 'https://via.placeholder.com/300x200';
-                const isAvailable = (eq.isAvailable !== false);
-                const cardClass = isAvailable ? '' : 'card-unavailable';
-                const statusLabel = isAvailable ? '' : '<span class="status-badge status-rented">ALUGADO</span>';
-                const contactBtnStyle = isAvailable ? 'btn-secondary' : 'btn-secondary disabled';
-
-                list.innerHTML += `
-                    <div class="result-card ${cardClass}">
-                        <div class="card-image-container">
-                            <img src="${imageUrl}" alt="${eq.name}">
-                            <button class="btn-favorite active" onclick="toggleFavorite('${eq.$id}', this)">❤️</button>
-                        </div>
-                        ${statusLabel}
-                        <h3>${eq.name}</h3>
-                        <p><strong>${eq.renterName}</strong> - ${eq.city}/${eq.state}</p>
-                        <p class="price">R$ ${eq.price} / dia</p>
-                        <button class="btn ${contactBtnStyle} contact-btn" onclick="contactRenter('${eq.renterId}', '${eq.name}')">
-                            <span class="icon">📞</span> Contato
-                        </button>
-                    </div>
-                `;
-            } catch(e) {}
-        }
-    } catch (e) { list.innerHTML = '<p>Erro.</p>'; }
-}
-
-// FECHAR MODAIS NO CLIQUE FORA
 window.onclick = function(e) {
     if (e.target === document.getElementById('contact-modal')) closeContactModal();
     if (e.target === document.getElementById('review-modal')) closeReviewModal();
     if (e.target === document.getElementById('read-reviews-modal')) closeReadReviewsModal();
 }
 
-// ... (Geoapify e loadStates/Cities mantidos iguais)
 let debounceTimer; 
 function handleAddressInput(event, listId) {
-    if (listId.startsWith('reg-')) {
-        const prefix = event.target.id.replace('-street', '');
-        clearAddressFields(prefix);
-    }
+    if (listId.startsWith('reg-')) clearAddressFields(event.target.id.replace('-street', ''));
     clearTimeout(debounceTimer);
-    const query = event.target.value;
-    debounceTimer = setTimeout(() => { searchAddress(query, listId); }, 300); 
+    debounceTimer = setTimeout(() => { searchAddress(event.target.value, listId); }, 300); 
 }
-
 async function searchAddress(query, listId) {
-    if (query.length < 3) { hideList(listId); return; }
+    if (query.length < 3) { document.getElementById(listId).classList.remove('show'); return; }
     const list = document.getElementById(listId);
-    list.innerHTML = '<div class="loading">Buscando...</div>';
-    list.classList.add('show');
+    list.innerHTML = '<div class="loading">...</div>'; list.classList.add('show');
     try {
-        const response = await fetch(`https://api.geoapify.com/v1/geocode/autocomplete?text=${encodeURIComponent(query)}&lang=pt&limit=5&filter=countrycode:br&apiKey=${apiKey}`);
-        const data = await response.json();
-        if (data.features?.length > 0) displayResults(data.features, listId);
-        else list.innerHTML = '<div class="no-results">Nenhum resultado encontrado</div>';
-    } catch (error) { list.innerHTML = '<div class="no-results">Erro ao buscar</div>'; }
+        const res = await fetch(`https://api.geoapify.com/v1/geocode/autocomplete?text=${encodeURIComponent(query)}&lang=pt&limit=5&filter=countrycode:br&apiKey=${apiKey}`);
+        const data = await res.json();
+        list.innerHTML = '';
+        if (data.features?.length) {
+            data.features.forEach(f => {
+                const div = document.createElement('div'); div.className = 'autocomplete-item';
+                div.innerHTML = `<strong>${f.properties.formatted}</strong>`;
+                div.onclick = () => { document.getElementById(listId.replace('List','')).value = f.properties.street || ''; populateAddressFields(listId.replace('-streetList',''), f); list.classList.remove('show'); };
+                list.appendChild(div);
+            });
+        } else { list.innerHTML = '<div class="no-results">Nada</div>'; }
+    } catch (e) { list.innerHTML = '<div class="no-results">Erro</div>'; }
 }
-
-function displayResults(features, listId) {
-    const list = document.getElementById(listId);
-    list.innerHTML = '';
-    features.forEach(feature => {
-        const item = document.createElement('div');
-        item.className = 'autocomplete-item';
-        item.innerHTML = `<strong>${feature.properties.formatted}</strong>`;
-        item.onclick = () => selectAddress(feature, listId);
-        list.appendChild(item);
-    });
-    list.classList.add('show');
-}
-
-function selectAddress(feature, listId) {
-    const inputId = listId.replace('List', ''); 
-    const prefix = inputId.replace('-street', ''); 
-    const input = document.getElementById(inputId);
-    if (input) input.value = feature.properties.street || ''; 
-    populateAddressFields(prefix, feature); 
-    hideList(listId); 
-}
-
-function hideList(listId) { document.getElementById(listId).classList.remove('show'); }
-document.addEventListener('click', function(e) { if (!e.target.closest('.autocomplete-container')) document.querySelectorAll('.autocomplete-list').forEach(list => list.classList.remove('show')); });
-
 function clearAddressFields(prefix) {
     document.getElementById(`${prefix}-neighborhood`).value = '';
     document.getElementById(`${prefix}-city`).value = '';
     document.getElementById(`${prefix}-state`).value = '';
     if (prefix.includes('renter')) { document.getElementById(`${prefix}-lat`).value = ''; document.getElementById(`${prefix}-lng`).value = ''; }
 }
-
 function populateAddressFields(prefix, location) {
-    const props = location.properties;
-    document.getElementById(`${prefix}-neighborhood`).value = props.suburb || props.city_district || '';
-    document.getElementById(`${prefix}-city`).value = props.city || '';
-    document.getElementById(`${prefix}-state`).value = props.state_code || props.state || ''; 
+    const p = location.properties;
+    document.getElementById(`${prefix}-neighborhood`).value = p.suburb || p.city_district || '';
+    document.getElementById(`${prefix}-city`).value = p.city || '';
+    document.getElementById(`${prefix}-state`).value = p.state_code || p.state || ''; 
     if (prefix.includes('renter')) {
-        document.getElementById(`${prefix}-lat`).value = props.lat || '';
-        document.getElementById(`${prefix}-lng`).value = props.lon || '';
+        document.getElementById(`${prefix}-lat`).value = p.lat || '';
+        document.getElementById(`${prefix}-lng`).value = p.lon || '';
     }
 }
-
 async function loadStates(selectId) {
     const select = document.getElementById(selectId);
     select.innerHTML = '<option value="">Carregando...</option>';
@@ -793,7 +715,6 @@ async function loadStates(selectId) {
         states.forEach(s => { select.innerHTML += `<option value="${s}">${s}</option>`; });
     } catch (error) { select.innerHTML = '<option value="">Erro</option>'; }
 }
-
 async function loadCities(state, selectId) {
     const select = document.getElementById(selectId);
     select.innerHTML = '<option value="">Carregando...</option>';
