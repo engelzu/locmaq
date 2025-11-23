@@ -25,16 +25,13 @@ body {
     background-color: var(--background-bg);
     color: var(--text-main);
     margin: 0;
-    
-    /* IMPORTANTE: Ajuste de padding para telas pequenas */
     padding: 16px; 
-    
     min-height: 100vh;
     display: flex;
     flex-direction: column;
     align-items: center;     
     justify-content: center; 
-    overflow-x: hidden; /* Impede que a tela 'dance' para os lados */
+    overflow-x: hidden;
 }
 
 /* Configuração das Telas */
@@ -45,7 +42,7 @@ body {
 }
 .screen.active { 
     display: flex; 
-    animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); /* Efeito "pulo" suave */
+    animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
 @keyframes popIn { 
@@ -56,21 +53,16 @@ body {
 /* O CONTAINER (A caixa branca) */
 .container {
     width: 100%;
-    /* Se a tela for grande, trava em 450px. Se for pequena, usa 100% */
     max-width: 450px; 
     background: var(--card-bg);
     border-radius: var(--radius);
-    
-    /* Espaçamento interno menor para ganhar espaço no celular */
     padding: 24px; 
-    
     box-shadow: var(--shadow-lg);
     border: 1px solid rgba(255,255,255,1);
     margin: 0 auto;
     position: relative;
 }
 
-/* LOGO - CORREÇÃO DE QUEBRA */
 .logo { 
     text-align: center; 
     margin-bottom: 25px; 
@@ -82,9 +74,7 @@ body {
 }
 
 .logo-img {
-    /* Isso impede que o logo "vaze" da caixa */
     max-width: 100%; 
-    /* Define um tamanho máximo visual agradável */
     width: 200px; 
     height: auto;
     object-fit: contain;
@@ -116,9 +106,10 @@ body {
     gap: 10px;
     position: relative;
     overflow: hidden;
+    text-decoration: none; /* Para o link parecer botão */
 }
 
-.btn:active { transform: scale(0.96); } /* Feedback tátil */
+.btn:active { transform: scale(0.96); } 
 
 .btn-primary { 
     background-color: var(--primary-color); 
@@ -129,7 +120,7 @@ body {
 .btn-secondary { 
     background-color: white; 
     color: var(--secondary-color);
-    border: 2px solid #f1f5f9; /* Borda mais grossa para toque */
+    border: 2px solid #f1f5f9; 
 }
 
 .btn-back {
@@ -152,7 +143,7 @@ input, textarea, select {
     background-color: #f8fafc;
     border: 1px solid var(--border-color); 
     border-radius: 14px; 
-    font-size: 16px; /* Evita zoom automático no iPhone */
+    font-size: 16px; 
     font-family: inherit;
     color: var(--text-main);
     outline: none;
@@ -192,7 +183,6 @@ h2 { color: var(--secondary-color); font-weight: 700; margin: 0 0 8px 0; font-si
     border-radius: 10px; margin-bottom: 12px; background: #e2e8f0; 
 }
 
-/* Ajuste específico para card de equipamento no celular */
 .equipment-card { display: flex; flex-direction: column; }
 .equipment-card img { height: 140px; } 
 
@@ -285,4 +275,3 @@ h2 { color: var(--secondary-color); font-weight: 700; margin: 0 0 8px 0; font-si
     from { opacity: 0; }
     to { opacity: 1; }
 }
-
