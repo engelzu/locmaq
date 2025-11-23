@@ -459,9 +459,12 @@ function initializeMap() {
 
 async function searchRenters(event) {
     event.preventDefault();
+    
+    // 1. Muda a tela IMEDIATAMENTE
     showScreen('user-dashboard');
     document.getElementById('equipment-results').innerHTML = '<div class="spinner"></div>';
     
+    // 2. Carrega mapa e dados com delay para não travar animação
     setTimeout(async () => {
         initializeMap(); 
         try {
@@ -692,10 +695,6 @@ window.onclick = function(e) {
     if (e.target === document.getElementById('review-modal')) closeReviewModal();
     if (e.target === document.getElementById('read-reviews-modal')) closeReadReviewsModal();
 }
-
-// ======================================================
-// GEOAPIFY (CORREÇÃO FINAL)
-// ======================================================
 
 let debounceTimer; 
 function handleAddressInput(event, listId) {

@@ -256,7 +256,15 @@
                     <option value="Bivolt">Bivolt</option>
                     <option value="N/A">Não se aplica</option>
                 </select>
-                <input type="file" id="equipment-image" accept="image/*" onchange="previewImage(event)" />
+                
+                <div style="margin-top: 15px; margin-bottom: 15px;">
+                    <label for="equipment-image" class="btn btn-secondary" style="cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; background-color: #e0f2fe; color: #0284c7; border: 2px dashed #7dd3fc;">
+                        <span style="font-size: 1.5rem;">📷</span> 
+                        <span>Tirar Foto ou Abrir Galeria</span>
+                    </label>
+                    <input type="file" id="equipment-image" accept="image/*" onchange="previewImage(event)" style="display: none;" />
+                </div>
+                
                 <div id="image-preview"></div>
                 <button type="submit" class="btn btn-primary">Salvar Equipamento</button>
             </form>
