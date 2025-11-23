@@ -42,7 +42,7 @@ let currentSession = {
     profile: null 
 };
 
-// Variáveis do MAPA
+// Variáveis do MAPA (Importante: Globais)
 let map; 
 let markersLayer = L.layerGroup(); 
 
@@ -135,6 +135,7 @@ function showScreen(screenId) {
         console.error(`Erro: Tela com ID '${screenId}' não encontrada.`);
     }
 
+    // Correção do erro "map.invalidateSize"
     if (screenId === 'user-dashboard' && map && typeof map.invalidateSize === 'function') {
         setTimeout(() => { map.invalidateSize(); }, 100); 
     }
