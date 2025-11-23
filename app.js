@@ -135,7 +135,6 @@ function showScreen(screenId) {
         console.error(`Erro: Tela com ID '${screenId}' não encontrada.`);
     }
 
-    // Correção do erro "map.invalidateSize"
     if (screenId === 'user-dashboard' && map && typeof map.invalidateSize === 'function') {
         setTimeout(() => { map.invalidateSize(); }, 100); 
     }
@@ -448,9 +447,9 @@ function highlightCurrentPlan() {
 // BUSCA, MAPA E AVALIAÇÕES
 // ======================================================
 
-// Função para inicializar o mapa (Garanti que está aqui e global)
+// Função para inicializar o mapa
 function initializeMap() {
-    if (map) return; // Se o mapa já existe, não recria
+    if (map) return; 
     map = L.map('map').setView([-15.78, -47.92], 4); 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '&copy; OpenStreetMap'
@@ -460,16 +459,13 @@ function initializeMap() {
 
 async function searchRenters(event) {
     event.preventDefault();
-    
-    // 1. Muda a tela IMEDIATAMENTE
     showScreen('user-dashboard');
     document.getElementById('equipment-results').innerHTML = '<div class="spinner"></div>';
     
-    // 2. Carrega mapa e dados com delay para não travar animação
     setTimeout(async () => {
         initializeMap(); 
         try {
-            await populateEquipmentDropdown(); // Chama a função que faltava!
+            await populateEquipmentDropdown(); 
             markersLayer.clearLayers();
             document.getElementById('equipment-results').innerHTML = `<div class="empty-state"><p>Selecione um equipamento e clique em 'Pesquisar'.</p></div>`;
         } catch (error) {
@@ -479,7 +475,6 @@ async function searchRenters(event) {
     }, 100);
 }
 
-// A FUNÇÃO QUE FALTAVA FOI ADICIONADA ABAIXO:
 async function populateEquipmentDropdown() {
     const state = document.getElementById('user-state-select').value;
     const city = document.getElementById('user-city-select').value;
@@ -528,7 +523,6 @@ async function searchEquipment() {
     try {
         const res = await databases.listDocuments(DB_ID, EQUIPMENT_COLLECTION_ID, q);
         
-        // Busca favoritos
         let favs = [];
         if (currentSession.isLoggedIn && !currentSession.isRenter) {
             try {
@@ -699,46 +693,137 @@ window.onclick = function(e) {
     if (e.target === document.getElementById('read-reviews-modal')) closeReadReviewsModal();
 }
 
+// ======================================================
+// GEOAPIFY (CORREÇÃO FINAL)
+// ======================================================
+
 let debounceTimer; 
 function handleAddressInput(event, listId) {
-    if (listId.startsWith('reg-')) clearAddressFields(event.target.id.replace('-street', ''));
+    if (listId.startsWith('reg-')) {
+        const prefix = event.target.id.replace('-street', '');
+        clearAddressFields(prefix);
+    }
+    
     clearTimeout(debounceTimer);
-    debounceTimer = setTimeout(() => { searchAddress(event.target.value, listId); }, 300); 
+    const query = event.target.value;
+    debounceTimer = setTimeout(() => {
+        searchAddress(query, listId);
+    }, 300); 
 }
+
 async function searchAddress(query, listId) {
-    if (query.length < 3) { document.getElementById(listId).classList.remove('show'); return; }
+    if (query.length < 3) {
+        document.getElementById(listId).classList.remove('show');
+        return;
+    }
+
     const list = document.getElementById(listId);
-    list.innerHTML = '<div class="loading">...</div>'; list.classList.add('show');
+    list.innerHTML = '<div class="loading">Buscando...</div>';
+    list.classList.add('show');
+
     try {
-        const res = await fetch(`https://api.geoapify.com/v1/geocode/autocomplete?text=${encodeURIComponent(query)}&lang=pt&limit=5&filter=countrycode:br&apiKey=${apiKey}`);
-        const data = await res.json();
-        list.innerHTML = '';
-        if (data.features?.length) {
-            data.features.forEach(f => {
-                const div = document.createElement('div'); div.className = 'autocomplete-item';
-                div.innerHTML = `<strong>${f.properties.formatted}</strong>`;
-                div.onclick = () => { document.getElementById(listId.replace('List','')).value = f.properties.street || ''; populateAddressFields(listId.replace('-streetList',''), f); list.classList.remove('show'); };
-                list.appendChild(div);
-            });
-        } else { list.innerHTML = '<div class="no-results">Nada</div>'; }
-    } catch (e) { list.innerHTML = '<div class="no-results">Erro</div>'; }
+        const response = await fetch(
+            `https://api.geoapify.com/v1/geocode/autocomplete?text=${encodeURIComponent(query)}&lang=pt&limit=5&filter=countrycode:br&apiKey=${apiKey}`
+        );
+        
+        const data = await response.json();
+        
+        if (data.features && data.features.length > 0) {
+            displayResults(data.features, listId);
+        } else {
+            list.innerHTML = '<div class="no-results">Nenhum resultado encontrado</div>';
+        }
+    } catch (error) {
+        console.error('Erro ao buscar endereços:', error);
+        list.innerHTML = '<div class="no-results">Erro ao buscar endereços</div>';
+    }
 }
+
+function displayResults(features, listId) {
+    const list = document.getElementById(listId);
+    list.innerHTML = '';
+
+    features.forEach(feature => {
+        const item = document.createElement('div');
+        item.className = 'autocomplete-item';
+        
+        const formatted = feature.properties.formatted;
+        
+        item.innerHTML = `<strong>${formatted}</strong>`;
+        
+        item.onclick = () => selectAddress(feature, listId);
+        list.appendChild(item);
+    });
+
+    list.classList.add('show');
+}
+
+function selectAddress(feature, listId) {
+    const inputId = listId.replace('List', ''); 
+    const prefix = inputId.replace('-street', ''); 
+    const input = document.getElementById(inputId);
+    
+    // CORREÇÃO: Se não tiver 'street', usa o endereço completo
+    if (input) {
+        const p = feature.properties;
+        input.value = p.street || p.address_line1 || p.formatted || ''; 
+    }
+
+    populateAddressFields(prefix, feature); 
+    
+    // Esconde a lista
+    document.getElementById(listId).classList.remove('show');
+}
+
+function populateAddressFields(prefix, feature) {
+    const p = feature.properties;
+    
+    console.log("Endereço selecionado:", p);
+
+    // Fallbacks para garantir preenchimento
+    const bairro = p.suburb || p.district || p.neighbourhood || '';
+    const cidade = p.city || p.municipality || p.town || p.village || '';
+    const estado = p.state_code || p.state || '';
+
+    // Preenche campos visuais
+    const fieldBairro = document.getElementById(`${prefix}-neighborhood`);
+    const fieldCidade = document.getElementById(`${prefix}-city`);
+    const fieldEstado = document.getElementById(`${prefix}-state`);
+
+    if (fieldBairro) fieldBairro.value = bairro;
+    if (fieldCidade) fieldCidade.value = cidade;
+    if (fieldEstado) fieldEstado.value = estado;
+
+    // Se for Locador, preenche coordenadas
+    if (prefix.includes('renter')) {
+        const fieldLat = document.getElementById(`${prefix}-lat`);
+        const fieldLng = document.getElementById(`${prefix}-lng`);
+        
+        if (fieldLat) fieldLat.value = p.lat || '';
+        if (fieldLng) fieldLng.value = p.lon || '';
+    }
+}
+
+// Fechar autocomplete ao clicar fora
+document.addEventListener('click', function(e) {
+    if (!e.target.closest('.autocomplete-container')) {
+        document.querySelectorAll('.autocomplete-list').forEach(list => list.classList.remove('show'));
+    }
+});
+
 function clearAddressFields(prefix) {
     document.getElementById(`${prefix}-neighborhood`).value = '';
     document.getElementById(`${prefix}-city`).value = '';
     document.getElementById(`${prefix}-state`).value = '';
-    if (prefix.includes('renter')) { document.getElementById(`${prefix}-lat`).value = ''; document.getElementById(`${prefix}-lng`).value = ''; }
-}
-function populateAddressFields(prefix, location) {
-    const p = location.properties;
-    document.getElementById(`${prefix}-neighborhood`).value = p.suburb || p.city_district || '';
-    document.getElementById(`${prefix}-city`).value = p.city || '';
-    document.getElementById(`${prefix}-state`).value = p.state_code || p.state || ''; 
+
     if (prefix.includes('renter')) {
-        document.getElementById(`${prefix}-lat`).value = p.lat || '';
-        document.getElementById(`${prefix}-lng`).value = p.lon || '';
+        document.getElementById(`${prefix}-lat`).value = '';
+        document.getElementById(`${prefix}-lng`).value = '';
     }
 }
+
+// --- CARREGAMENTO DINÂMICO DE ESTADO/CIDADE ---
+
 async function loadStates(selectId) {
     const select = document.getElementById(selectId);
     select.innerHTML = '<option value="">Carregando...</option>';
@@ -749,6 +834,7 @@ async function loadStates(selectId) {
         states.forEach(s => { select.innerHTML += `<option value="${s}">${s}</option>`; });
     } catch (error) { select.innerHTML = '<option value="">Erro</option>'; }
 }
+
 async function loadCities(state, selectId) {
     const select = document.getElementById(selectId);
     select.innerHTML = '<option value="">Carregando...</option>';
