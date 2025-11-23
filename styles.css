@@ -194,54 +194,33 @@ h2 { color: var(--secondary-color); font-weight: 700; margin: 0 0 8px 0; font-si
     position: relative;
 }
 
-/* --- CORAÇÃO DE FAVORITO (VISUAL MELHORADO) --- */
+/* --- CORAÇÃO DE FAVORITO --- */
 .card-image-container { position: relative; width: 100%; }
 .card-image-container img {
     width: 100%; height: 150px; object-fit: cover; 
     border-radius: 10px; margin-bottom: 12px; background: #e2e8f0; 
 }
 
-/* O Círculo do Botão */
 .btn-favorite {
-    position: absolute;
-    top: 10px; right: 10px;
-    background: #ffffff;
-    border: 2px solid #cbd5e1; /* Borda cinza visível */
-    width: 42px; height: 42px; /* Levemente maior */
-    border-radius: 50%;
+    position: absolute; top: 10px; right: 10px;
+    background: #ffffff; border: 2px solid #cbd5e1;
+    width: 42px; height: 42px; border-radius: 50%;
     display: flex; align-items: center; justify-content: center;
-    font-size: 1.4rem; /* Ícone maior */
-    cursor: pointer;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.2); /* Sombra mais forte */
-    z-index: 10;
-    transition: all 0.2s ease-in-out;
-    color: #64748b; /* Cor do coração vazio mais escura para contraste */
-    padding-top: 2px; 
+    font-size: 1.4rem; cursor: pointer;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2); z-index: 10;
+    transition: all 0.2s ease-in-out; color: #64748b; padding-top: 2px; 
 }
-
-/* Efeito ao passar o mouse */
-.btn-favorite:hover {
-    transform: scale(1.1);
-    border-color: #94a3b8;
-    background-color: #f1f5f9;
-}
-
-/* ESTADO ATIVO (QUANDO CURTIDO) - BEM CHAMATIVO */
+.btn-favorite:hover { transform: scale(1.1); border-color: #94a3b8; background-color: #f1f5f9; }
 .btn-favorite.active {
-    border-color: #ef4444; /* Borda vermelha */
-    background-color: #fff0f0; /* Fundo levemente avermelhado */
-    box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3); /* Glow vermelho forte */
-    /* O JS já coloca o emoji vermelho, mas se fosse fonte, seria color: red */
+    border-color: #ef4444; background-color: #fff0f0;
+    box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3);
 }
 
 /* Status e Visual */
 .status-badge {
-    display: inline-block;
-    padding: 4px 10px;
-    border-radius: 6px;
-    font-size: 0.8rem;
-    font-weight: 700;
-    margin-bottom: 8px;
+    display: inline-block; padding: 4px 10px;
+    border-radius: 6px; font-size: 0.8rem;
+    font-weight: 700; margin-bottom: 8px;
     text-transform: uppercase;
 }
 .status-available { background-color: #dcfce7; color: #166534; }
@@ -259,6 +238,39 @@ h2 { color: var(--secondary-color); font-weight: 700; margin: 0 0 8px 0; font-si
 .delete-btn { background: #fef2f2; color: #dc2626; }
 .toggle-btn { background: #f1f5f9; color: var(--text-main); border: 1px solid #cbd5e1; }
 .toggle-btn:hover { background: #e2e8f0; }
+
+/* --- ESTRELAS DE AVALIAÇÃO --- */
+.rating-display {
+    font-size: 0.9rem;
+    color: #f59e0b; /* Amarelo Ouro */
+    font-weight: 700;
+    margin-top: -5px;
+    margin-bottom: 5px;
+}
+
+.star-rating-input {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 15px;
+}
+
+.star {
+    font-size: 2.5rem;
+    color: #e2e8f0; /* Cinza vazio */
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.star.filled {
+    color: #f59e0b; /* Amarelo preenchido */
+}
+
+.btn-rate {
+    background-color: #fff7ed;
+    color: #d97706;
+    border: 1px solid #ffedd5;
+}
 
 /* Map */
 #map { border-radius: 16px; width: 100%; height: 300px; z-index: 1; }
@@ -278,7 +290,7 @@ h2 { color: var(--secondary-color); font-weight: 700; margin: 0 0 8px 0; font-si
 .spinner { border: 3px solid #e2e8f0; border-top: 3px solid var(--primary-color); border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; margin: 20px auto; }
 @keyframes spin { 100% { transform: rotate(360deg); } }
 
-/* --- MODAL DE CONTATO --- */
+/* --- MODAL GERAL --- */
 .modal-overlay {
     display: none; 
     position: fixed;

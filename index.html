@@ -354,6 +354,28 @@
         </div>
     </div>
 
+    <div id="review-modal" class="modal-overlay">
+        <div class="modal-content">
+            <button class="btn-close-modal" onclick="closeReviewModal()">×</button>
+            <h3 class="modal-title">Avaliar Locador</h3>
+            <p style="margin-bottom: 15px; color: #64748b;">O que você achou do atendimento?</p>
+            
+            <div class="star-rating-input">
+                <span class="star" onclick="selectStar(1)">★</span>
+                <span class="star" onclick="selectStar(2)">★</span>
+                <span class="star" onclick="selectStar(3)">★</span>
+                <span class="star" onclick="selectStar(4)">★</span>
+                <span class="star" onclick="selectStar(5)">★</span>
+            </div>
+            
+            <textarea id="review-comment" placeholder="Escreva um comentário (opcional)..." rows="3"></textarea>
+            
+            <div class="modal-actions">
+                <button onclick="submitReview()" class="btn btn-primary">Enviar Avaliação</button>
+            </div>
+        </div>
+    </div>
+
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/appwrite@11.0.0"></script>
     <script src="app.js"></script>
