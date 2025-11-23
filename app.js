@@ -413,6 +413,30 @@ function previewImage(e) {
 
 // --- BUSCA USUÁRIO & SISTEMA DE AVALIAÇÃO ---
 
+async function searchRenters(event) {
+    event.preventDefault();
+    
+    // 1. Muda a tela IMEDIATAMENTE (para não parecer travado)
+    showScreen('user-dashboard');
+    
+    // 2. Mostra carregando
+    document.getElementById('equipment-results').innerHTML = '<div class="spinner"></div>';
+    
+    // 3. Inicializa o mapa e busca dados (DEFERIDO PARA NÃO TRAVAR A UI)
+    setTimeout(async () => {
+        initializeMap();
+        try {
+            await populateEquipmentDropdown(); 
+            // Limpa os marcadores anteriores
+            markersLayer.clearLayers();
+            document.getElementById('equipment-results').innerHTML = `<div class="empty-state"><p>Selecione um equipamento e clique em 'Pesquisar'.</p></div>`;
+        } catch (error) {
+            console.error("Erro ao preparar busca:", error);
+            showAlert("Erro ao carregar dados da cidade. Verifique sua conexão.");
+        }
+    }, 100);
+}
+
 async function searchEquipment() {
     const state = document.getElementById('user-state-select').value;
     const city = document.getElementById('user-city-select').value;
@@ -447,7 +471,7 @@ async function searchEquipment() {
             const isAv = (eq.isAvailable !== false);
             const isFav = favs.includes(eq.$id);
             
-            // Adiciona Card
+            // Adiciona Card com Placeholder de Estrelas
             const div = document.createElement('div');
             div.className = `result-card ${isAv?'':'card-unavailable'}`;
             div.innerHTML = `
@@ -457,8 +481,7 @@ async function searchEquipment() {
                 </div>
                 ${isAv?'':'<span class="status-badge status-rented">ALUGADO</span>'}
                 <h3>${eq.name}</h3>
-                <div id="rating-${eq.renterId}" class="rating-display">⭐ Carregando...</div>
-                
+                <div id="rating-${eq.renterId}" class="rating-display">⭐ Carregando nota...</div>
                 <p><strong>${eq.renterName}</strong> - ${eq.city}</p>
                 <p>${eq.description}</p>
                 <p class="price">R$ ${eq.price} / dia</p>
@@ -469,6 +492,7 @@ async function searchEquipment() {
 
             if (eq.lat) { const ll=[eq.lat, eq.lng]; L.marker(ll).addTo(markersLayer).bindPopup(eq.name); bounds.push(ll); }
             
+            // Carrega a nota de forma assíncrona para não travar a lista
             loadRenterRating(eq.renterId); 
         }
         if (bounds.length) map.fitBounds(bounds, {padding:[50,50]});
@@ -476,33 +500,40 @@ async function searchEquipment() {
     } catch (e) { console.error(e); resDiv.innerHTML = '<p>Erro na busca.</p>'; }
 }
 
-// --- AVALIAÇÕES ---
+// --- LÓGICA DE AVALIAÇÃO (ESTRELAS) ---
 
 async function loadRenterRating(renterId) {
     try {
+        // Busca todas as avaliações desse locador
         const res = await databases.listDocuments(DB_ID, REVIEWS_COLLECTION_ID, [
             Query.equal('renterId', renterId)
         ]);
         
         const elements = document.querySelectorAll(`#rating-${renterId}`);
+        
         if (res.total === 0) {
             elements.forEach(el => {
                 el.innerHTML = '<span style="color:#999; font-weight:normal; font-size:0.8rem;">(Sem avaliações)</span>';
-                el.onclick = null;
+                el.style.cursor = 'default';
                 el.style.textDecoration = 'none';
+                el.onclick = null;
             });
             return;
         }
 
+        // Calcula Média
         const sum = res.documents.reduce((acc, rev) => acc + rev.stars, 0);
         const avg = (sum / res.total).toFixed(1);
         
+        // Agora o texto é clicável e abre os comentários
         elements.forEach(el => {
             el.innerHTML = `⭐ <strong>${avg}</strong> <span style="font-size:0.8rem; color:#64748b;">(${res.total} ver comentários)</span>`;
             el.onclick = () => openReadReviewsModal(renterId);
         });
 
-    } catch (error) { console.error("Erro nota:", error); }
+    } catch (error) {
+        console.error("Erro ao carregar nota:", error);
+    }
 }
 
 function openReviewModal(renterId) {
@@ -514,7 +545,9 @@ function openReviewModal(renterId) {
     document.getElementById('review-modal').style.display = 'flex';
 }
 
-function closeReviewModal() { document.getElementById('review-modal').style.display = 'none'; }
+function closeReviewModal() {
+    document.getElementById('review-modal').style.display = 'none';
+}
 
 function selectStar(n) {
     currentRating = n;
@@ -531,18 +564,24 @@ function updateStarVisuals(n) {
 
 async function submitReview() {
     if (currentRating === 0) return showAlert('Selecione as estrelas!');
+    
     try {
         await databases.createDocument(DB_ID, REVIEWS_COLLECTION_ID, ID.unique(), {
             renterId: currentReviewRenterId,
             userId: currentSession.account.$id,
-            userName: currentSession.profile.name, // NOVO: Salva o nome
+            userName: currentSession.profile.name, // Salva o nome
             stars: currentRating,
             comment: document.getElementById('review-comment').value
         });
+        
         showAlert('Avaliação enviada!', 'success');
         closeReviewModal();
-        loadRenterRating(currentReviewRenterId);
-    } catch (error) { console.error(error); showAlert('Erro ao enviar avaliação.'); }
+        loadRenterRating(currentReviewRenterId); // Atualiza visualmente
+        
+    } catch (error) {
+        console.error(error);
+        showAlert('Erro ao enviar avaliação.');
+    }
 }
 
 // 2. Modal de LER avaliações (NOVO)
@@ -552,6 +591,7 @@ async function openReadReviewsModal(renterId) {
     document.getElementById('read-reviews-modal').style.display = 'flex';
 
     try {
+        // Busca as avaliações do locador (ordenadas das mais recentes)
         const response = await databases.listDocuments(DB_ID, REVIEWS_COLLECTION_ID, [
             Query.equal('renterId', renterId),
             Query.orderDesc('$createdAt'),
@@ -559,17 +599,23 @@ async function openReadReviewsModal(renterId) {
         ]);
 
         container.innerHTML = '';
+
         if (response.documents.length === 0) {
             container.innerHTML = '<p style="text-align:center; color:#999;">Nenhum comentário ainda.</p>';
             return;
         }
 
         response.documents.forEach(review => {
+            // Cria as estrelas visuais (ex: ★★★☆☆)
             let starsDisplay = '';
-            for(let i=0; i<5; i++) starsDisplay += (i < review.stars) ? '★' : '☆';
+            for(let i=0; i<5; i++) {
+                starsDisplay += (i < review.stars) ? '★' : '☆';
+            }
+
+            // Formata a data
             const date = new Date(review.$createdAt).toLocaleDateString('pt-BR');
             const userName = review.userName || 'Usuário Anônimo';
-            const comment = review.comment || '<i>Sem comentário.</i>';
+            const comment = review.comment || '<i>Sem comentário escrito.</i>';
 
             container.innerHTML += `
                 <div class="review-item">
@@ -582,6 +628,7 @@ async function openReadReviewsModal(renterId) {
                 </div>
             `;
         });
+
     } catch (error) {
         console.error("Erro ao ler avaliações:", error);
         container.innerHTML = '<p style="text-align:center; color:red;">Erro ao carregar.</p>';
@@ -592,7 +639,76 @@ function closeReadReviewsModal() {
     document.getElementById('read-reviews-modal').style.display = 'none';
 }
 
-// FECHAR MODAIS
+// --- FUNÇÕES AUXILIARES RESTANTES (Geoapify, Favorites, Contact) ---
+async function contactRenter(renterId, equipmentName) {
+    try {
+        const renter = await databases.getDocument(DB_ID, RENTERS_COLLECTION_ID, renterId);
+        document.getElementById('modal-renter-name').textContent = renter.name;
+        document.getElementById('modal-phone-display').textContent = renter.phone;
+        currentContactPhone = renter.phone;
+        const clean = renter.phone.replace(/\D/g, '');
+        document.getElementById('btn-action-call').href = `tel:${clean}`;
+        document.getElementById('btn-action-whatsapp').href = `https://wa.me/55${clean}?text=${encodeURIComponent('Olá '+renter.name+', vi '+equipmentName+' no LocaMaq.')}`;
+        document.getElementById('contact-modal').style.display = 'flex';
+    } catch (e) { showAlert('Erro ao carregar locador.'); }
+}
+
+async function toggleFavorite(equipmentId, btnElement) {
+    if (!currentSession.isLoggedIn || currentSession.isRenter) return showAlert('Faça login como usuário.');
+    const userId = currentSession.account.$id;
+    const isActive = btnElement.classList.contains('active');
+    try {
+        if (isActive) {
+            const res = await databases.listDocuments(DB_ID, FAVORITES_COLLECTION_ID, [Query.equal('userId', userId), Query.equal('equipmentId', equipmentId)]);
+            if (res.documents.length > 0) { await databases.deleteDocument(DB_ID, FAVORITES_COLLECTION_ID, res.documents[0].$id); btnElement.classList.remove('active'); btnElement.innerHTML='🤍'; }
+        } else {
+            await databases.createDocument(DB_ID, FAVORITES_COLLECTION_ID, ID.unique(), { userId, equipmentId });
+            btnElement.classList.add('active'); btnElement.innerHTML='❤️';
+        }
+    } catch (e) { console.error(e); showAlert('Erro favorito.'); }
+}
+
+async function loadFavoritesScreen() {
+    const list = document.getElementById('favorites-list');
+    list.innerHTML = '<div class="spinner"></div>';
+    if (!currentSession.isLoggedIn || currentSession.isRenter) return;
+    
+    try {
+        const favs = await databases.listDocuments(DB_ID, FAVORITES_COLLECTION_ID, [Query.equal('userId', currentSession.account.$id)]);
+        if (favs.total === 0) { list.innerHTML = '<p>Sem favoritos.</p>'; return; }
+        
+        list.innerHTML = '';
+        for (const f of favs.documents) {
+            try {
+                const eq = await databases.getDocument(DB_ID, EQUIPMENT_COLLECTION_ID, f.equipmentId);
+                
+                const imageUrl = eq.imageUrl || 'https://via.placeholder.com/300x200';
+                const isAvailable = (eq.isAvailable !== false);
+                const cardClass = isAvailable ? '' : 'card-unavailable';
+                const statusLabel = isAvailable ? '' : '<span class="status-badge status-rented">ALUGADO</span>';
+                const contactBtnStyle = isAvailable ? 'btn-secondary' : 'btn-secondary disabled';
+
+                list.innerHTML += `
+                    <div class="result-card ${cardClass}">
+                        <div class="card-image-container">
+                            <img src="${imageUrl}" alt="${eq.name}">
+                            <button class="btn-favorite active" onclick="toggleFavorite('${eq.$id}', this)">❤️</button>
+                        </div>
+                        ${statusLabel}
+                        <h3>${eq.name}</h3>
+                        <p><strong>${eq.renterName}</strong> - ${eq.city}/${eq.state}</p>
+                        <p class="price">R$ ${eq.price} / dia</p>
+                        <button class="btn ${contactBtnStyle} contact-btn" onclick="contactRenter('${eq.renterId}', '${eq.name}')">
+                            <span class="icon">📞</span> Contato
+                        </button>
+                    </div>
+                `;
+            } catch(e) {}
+        }
+    } catch (e) { list.innerHTML = '<p>Erro.</p>'; }
+}
+
+// FECHAR MODAIS NO CLIQUE FORA
 window.onclick = function(e) {
     if (e.target === document.getElementById('contact-modal')) closeContactModal();
     if (e.target === document.getElementById('review-modal')) closeReviewModal();
