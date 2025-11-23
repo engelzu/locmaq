@@ -246,7 +246,10 @@ h2 { color: var(--secondary-color); font-weight: 700; margin: 0 0 8px 0; font-si
     font-weight: 700;
     margin-top: -5px;
     margin-bottom: 5px;
+    cursor: pointer;
+    text-decoration: underline;
 }
+.rating-display:hover { color: #d97706; }
 
 .star-rating-input {
     display: flex;
@@ -257,20 +260,32 @@ h2 { color: var(--secondary-color); font-weight: 700; margin: 0 0 8px 0; font-si
 
 .star {
     font-size: 2.5rem;
-    color: #e2e8f0; /* Cinza vazio */
+    color: #e2e8f0; 
     cursor: pointer;
     transition: color 0.2s;
 }
 
-.star.filled {
-    color: #f59e0b; /* Amarelo preenchido */
-}
+.star.filled { color: #f59e0b; }
 
 .btn-rate {
     background-color: #fff7ed;
     color: #d97706;
     border: 1px solid #ffedd5;
 }
+
+/* --- LISTA DE COMENTÁRIOS (NOVO) --- */
+.review-item {
+    background-color: #f8fafc;
+    border-radius: 12px;
+    padding: 15px;
+    margin-bottom: 12px;
+    border: 1px solid #e2e8f0;
+}
+.review-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.review-user { font-weight: 700; font-size: 0.9rem; color: var(--secondary-color); }
+.review-stars { color: #f59e0b; font-size: 0.9rem; }
+.review-text { font-size: 0.9rem; color: #475569; line-height: 1.4; }
+.review-date { font-size: 0.75rem; color: #94a3b8; margin-top: 8px; text-align: right; }
 
 /* Map */
 #map { border-radius: 16px; width: 100%; height: 300px; z-index: 1; }
