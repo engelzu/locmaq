@@ -218,3 +218,71 @@ h2 { color: var(--secondary-color); font-weight: 700; margin: 0 0 8px 0; font-si
 /* Loading Spinner */
 .spinner { border: 3px solid #e2e8f0; border-top: 3px solid var(--primary-color); border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; margin: 20px auto; }
 @keyframes spin { 100% { transform: rotate(360deg); } }
+
+/* --- MODAL DE CONTATO --- */
+.modal-overlay {
+    display: none; /* Escondido por padrão */
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0, 0, 0, 0.6); /* Fundo escuro transparente */
+    z-index: 2000;
+    align-items: center;
+    justify-content: center;
+    animation: fadeIn 0.2s ease-out;
+}
+
+.modal-content {
+    background: white;
+    width: 90%;
+    max-width: 350px;
+    padding: 24px;
+    border-radius: 24px;
+    text-align: center;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+    position: relative;
+}
+
+.modal-title {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--secondary-color);
+    margin-bottom: 8px;
+}
+
+.modal-phone {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: var(--primary-color);
+    margin: 16px 0;
+    letter-spacing: 1px;
+}
+
+.modal-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.btn-call {
+    background-color: #22c55e; /* Verde WhatsApp/Telefone */
+    color: white;
+}
+
+.btn-copy {
+    background-color: #e2e8f0;
+    color: var(--text-main);
+}
+
+.btn-close-modal {
+    position: absolute;
+    top: 15px; right: 15px;
+    background: none; border: none;
+    font-size: 1.5rem; color: #94a3b8;
+    cursor: pointer; width: auto; height: auto; padding: 0;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
