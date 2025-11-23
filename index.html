@@ -304,6 +304,27 @@
         </div>
     </div>
 
+    <div id="contact-modal" class="modal-overlay">
+        <div class="modal-content">
+            <button class="btn-close-modal" onclick="closeContactModal()">×</button>
+            
+            <h3 id="modal-renter-name" class="modal-title">Nome do Locador</h3>
+            <p>Entre em contato pelo número:</p>
+            
+            <div id="modal-phone-display" class="modal-phone">(00) 00000-0000</div>
+            
+            <div class="modal-actions">
+                <a id="btn-action-call" href="#" class="btn btn-call">
+                    <span class="icon">📞</span> Ligar Agora
+                </a>
+                
+                <button onclick="copyPhoneNumber()" class="btn btn-copy">
+                    <span class="icon">📋</span> Copiar Número
+                </button>
+            </div>
+        </div>
+    </div>
+
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/appwrite@11.0.0"></script>
     <script src="app.js"></script>
