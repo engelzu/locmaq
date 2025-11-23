@@ -292,6 +292,18 @@
         </div>
     </div>
 
+    <div id="reset-password-screen" class="screen">
+        <div class="container">
+            <h2>Criar Nova Senha</h2>
+            <p>Digite sua nova senha abaixo.</p>
+            <form onsubmit="finishPasswordReset(event)">
+                <input type="password" id="new-password" placeholder="Nova Senha" required />
+                <input type="password" id="confirm-new-password" placeholder="Confirmar Nova Senha" required />
+                <button type="submit" class="btn btn-primary">Redefinir Senha</button>
+            </form>
+        </div>
+    </div>
+
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/appwrite@11.0.0"></script>
     <script src="app.js"></script>

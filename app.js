@@ -6,8 +6,8 @@ const apiKey = '435bf07fb6d444f8a0ca1af6906f1bce';
 // COLE SEUS LINKS DE PAGAMENTO DO STRIPE AQUI
 // (Use os links do "Modo de Teste" primeiro)
 // ======================================================
-const STRIPE_LINK_BASICO = 'https://buy.stripe.com/test_00w9AT3P32hIggO15a5EY01'; // Ex: https://buy.stripe.com/test_...
-const STRIPE_LINK_PREMIUM = 'https://buy.stripe.com/test_00w3cv0CR4pQfcKcNS5EY00'; // Ex: https://buy.stripe.com/test_...
+const STRIPE_LINK_BASICO = 'https://buy.stripe.com/test_00w9AT3P32hIggO15a5EY01';
+const STRIPE_LINK_PREMIUM = 'https://buy.stripe.com/test_00w3cv0CR4pQfcKcNS5EY00';
 // ======================================================
 
 
@@ -50,7 +50,19 @@ const planLimits = {
 
 // --- INICIALIZAÇÃO ---
 document.addEventListener('DOMContentLoaded', () => {
-    initializeApp();
+    // !! VERIFICAÇÃO DE RECUPERAÇÃO DE SENHA !!
+    // Se a URL tiver 'userId' e 'secret', significa que o usuário clicou no link do e-mail
+    const urlParams = new URLSearchParams(window.location.search);
+    const userId = urlParams.get('userId');
+    const secret = urlParams.get('secret');
+
+    if (userId && secret) {
+        console.log("Detectado fluxo de recuperação de senha.");
+        showScreen('reset-password-screen');
+    } else {
+        // Fluxo normal
+        initializeApp();
+    }
 });
 
 async function initializeApp() {
@@ -276,6 +288,9 @@ async function renterLogin(event) {
     }
 }
 
+// --- FUNÇÕES DE RECUPERAÇÃO DE SENHA ---
+
+// 1. Envia o e-mail
 async function recoverPassword(event, type) {
     event.preventDefault();
     const email = (type === 'user') 
@@ -283,16 +298,55 @@ async function recoverPassword(event, type) {
         : document.getElementById('recover-renter-email').value;
 
     try {
+        // A URL para onde o usuário volta depois de clicar no e-mail
         const resetUrl = window.location.origin + window.location.pathname; 
         
         await account.createRecovery(email, resetUrl);
-        showAlert('Se o e-mail estiver cadastrado, um link será enviado.', 'success');
+        showAlert('Se o e-mail estiver cadastrado, um link foi enviado. Verifique o SPAM.', 'success');
         
         const targetLogin = (type === 'user') ? 'user-login' : 'renter-login';
         showScreen(targetLogin);
     } catch (error) {
-         console.error("Erro ao recuperar senha:", error);
-         showAlert('Se o e-mail estiver cadastrado, um link será enviado.', 'success');
+         console.error("Erro ao iniciar recuperação:", error);
+         // Por segurança, mostramos a mesma mensagem mesmo se der erro (pra não revelar se o email existe)
+         showAlert('Se o e-mail estiver cadastrado, um link foi enviado.', 'success');
+    }
+}
+
+// 2. Define a nova senha (chamada pelo form da tela 'reset-password-screen')
+async function finishPasswordReset(event) {
+    event.preventDefault();
+    
+    const password = document.getElementById('new-password').value;
+    const confirmPassword = document.getElementById('confirm-new-password').value;
+    
+    if (password !== confirmPassword) {
+        return showAlert('As senhas não conferem.');
+    }
+
+    // Pega os segredos da URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const userId = urlParams.get('userId');
+    const secret = urlParams.get('secret');
+
+    if (!userId || !secret) {
+        return showAlert('Link inválido ou expirado.');
+    }
+
+    try {
+        // Efetiva a troca no Appwrite
+        await account.updateRecovery(userId, secret, password, password);
+        
+        showAlert('Senha alterada com sucesso! Faça login agora.', 'success');
+        
+        // Limpa a URL para remover os códigos secretos
+        window.history.replaceState({}, document.title, window.location.pathname);
+        
+        showScreen('home-screen');
+        
+    } catch (error) {
+        console.error("Erro ao finalizar recuperação:", error);
+        showAlert(`Erro: ${error.message}`);
     }
 }
 
@@ -683,7 +737,7 @@ async function selectPlan(planName) {
         // 5. Constrói a URL final com os dados do cliente
         const url = new URL(stripeUrl);
         url.searchParams.append('prefilled_email', renterEmail);
-        url.searchParams.append('client_reference_id', renterId); // <-- MUITO IMPORTANTE
+        url.searchParams.append('client_reference_id', renterId); 
         
         // 6. Redireciona o usuário para a página de pagamento do Stripe
         showAlert('Redirecionando para o pagamento...', 'success');
