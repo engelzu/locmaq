@@ -291,7 +291,6 @@ async function renterLogin(event) {
 
 // --- FUNÇÕES DE RECUPERAÇÃO DE SENHA ---
 
-// 1. Envia o e-mail
 async function recoverPassword(event, type) {
     event.preventDefault();
     
@@ -329,7 +328,6 @@ async function recoverPassword(event, type) {
     }
 }
 
-// 2. Define a nova senha
 async function finishPasswordReset(event) {
     event.preventDefault();
     
@@ -523,6 +521,7 @@ async function loadPlanInfo() {
     }
 }
 
+// --- LISTA DE EQUIPAMENTOS (COM TOGGLE DE STATUS) ---
 async function loadEquipmentList() {
     const renterId = currentSession.profile.$id;
     const listContainer = document.getElementById('equipment-list');
@@ -545,14 +544,24 @@ async function loadEquipmentList() {
         myEquipment.forEach(eq => {
             const imageUrl = eq.imageUrl || 'https://via.placeholder.com/120';
             
+            // Verifica o status (se for nulo, considera true/disponível)
+            const isAvailable = (eq.isAvailable !== false); 
+            const statusText = isAvailable ? 'DISPONÍVEL' : 'ALUGADO';
+            const statusClass = isAvailable ? 'status-available' : 'status-rented';
+            const btnText = isAvailable ? 'Marcar Alugado' : 'Marcar Disponível';
+
             listContainer.innerHTML += `
                 <div class="equipment-card">
                     <img src="${imageUrl}" alt="${eq.name}">
                     <div class="equipment-info">
+                        <span class="status-badge ${statusClass}">${statusText}</span>
                         <h4>${eq.name}</h4>
                         <p>R$ ${eq.price} / dia - ${eq.voltage}</p>
                         <p class="description">${eq.description}</p>
                         <div class="equipment-actions">
+                             <button class="toggle-btn" onclick="toggleEquipmentStatus('${eq.$id}', ${isAvailable})">
+                                ${btnText}
+                            </button>
                             <button class="edit-btn" onclick="editEquipment('${eq.$id}')">Editar</button>
                             <button class="delete-btn" onclick="deleteEquipment('${eq.$id}')">Excluir</button>
                         </div>
@@ -563,6 +572,27 @@ async function loadEquipmentList() {
     } catch (error) {
         console.error("Erro ao carregar lista de equipamentos:", error);
         listContainer.innerHTML = `<div class="empty-state"><p>Erro ao carregar equipamentos.</p></div>`;
+    }
+}
+
+// --- NOVA FUNÇÃO: ALTERAR STATUS ---
+async function toggleEquipmentStatus(docId, currentStatus) {
+    try {
+        const newStatus = !currentStatus; // Inverte o status atual
+        
+        await databases.updateDocument(
+            DB_ID, 
+            EQUIPMENT_COLLECTION_ID, 
+            docId, 
+            { isAvailable: newStatus }
+        );
+
+        // Recarrega a lista para mostrar a mudança
+        loadEquipmentList();
+        
+    } catch (error) {
+        console.error("Erro ao mudar status:", error);
+        showAlert(`Erro ao mudar status: ${error.message}`);
     }
 }
 
@@ -614,7 +644,8 @@ async function saveEquipment(event) {
             state: renter.state,
             lat: renter.lat,
             lng: renter.lng,
-            name, description, price, voltage
+            name, description, price, voltage,
+            isAvailable: true // !! NOVO: Padrão é disponível
         };
         
         if (imageUrl) {
@@ -625,6 +656,9 @@ async function saveEquipment(event) {
             if (!imageUrl) {
                 delete equipmentData.imageUrl; 
             }
+            // Remove isAvailable da atualização para não resetar se estiver alugado
+            delete equipmentData.isAvailable; 
+            
             await databases.updateDocument(DB_ID, EQUIPMENT_COLLECTION_ID, id, equipmentData);
             showAlert('Equipamento atualizado!', 'success');
         } else {
@@ -769,7 +803,7 @@ function highlightCurrentPlan() {
 }
 
 
-// --- DASHBOARD USUÁRIO (BUSCA) ---
+// --- DASHBOARD USUÁRIO (BUSCA COM STATUS) ---
 
 let map; 
 let markersLayer = L.layerGroup(); 
@@ -869,15 +903,22 @@ async function searchEquipment() {
         results.forEach(eq => {
             const imageUrl = eq.imageUrl || 'https://via.placeholder.com/300x200';
             
+            // Verifica status
+            const isAvailable = (eq.isAvailable !== false);
+            const cardClass = isAvailable ? '' : 'card-unavailable';
+            const statusLabel = isAvailable ? '' : '<span class="status-badge status-rented">ALUGADO</span>';
+            const contactBtnStyle = isAvailable ? 'btn-secondary' : 'btn-secondary disabled'; // Apenas visual
+            
             resultsContainer.innerHTML += `
-                <div class="result-card">
+                <div class="result-card ${cardClass}">
                     <img src="${imageUrl}" alt="${eq.name}">
+                    ${statusLabel}
                     <h3>${eq.name}</h3>
                     <p><strong>${eq.renterName}</strong> - ${eq.city}/${eq.state}</p>
                     <p>${eq.description}</p>
                     <p>Tensão: ${eq.voltage}</p>
                     <p class="price">R$ ${eq.price} / dia</p>
-                    <button class="btn btn-secondary contact-btn" onclick="contactRenter('${eq.renterId}', '${eq.name}')">
+                    <button class="btn ${contactBtnStyle} contact-btn" onclick="contactRenter('${eq.renterId}', '${eq.name}')">
                         <span class="icon">📞</span> Contato
                     </button>
                 </div>
@@ -888,8 +929,6 @@ async function searchEquipment() {
                 const marker = L.marker(latLng).addTo(markersLayer);
                 marker.bindPopup(`<b>${eq.name}</b><br>${eq.renterName}<br>R$ ${eq.price}/dia`);
                 bounds.push(latLng);
-            } else {
-                console.warn(`Equipamento '${eq.name}' (ID: ${eq.$id}) está sem coordenadas. Não será exibido no mapa.`);
             }
         });
         
@@ -905,7 +944,7 @@ async function searchEquipment() {
     }
 }
 
-// --- MODAL DE CONTATO (AGORA COM WHATSAPP) ---
+// --- MODAL DE CONTATO (COM WHATSAPP) ---
 
 async function contactRenter(renterId, equipmentName) {
     try {
@@ -926,12 +965,9 @@ async function contactRenter(renterId, equipmentName) {
         document.getElementById('btn-action-call').href = `tel:${cleanPhone}`;
 
         // 3. Configura botão de WHATSAPP (NOVO)
-        // Cria a mensagem automática
         const textMessage = `Olá ${renter.name}, vi seu equipamento "${equipmentName}" no LocaMaq e tenho interesse.`;
         const encodedMessage = encodeURIComponent(textMessage);
         
-        // O link final (Assumindo código do Brasil 55 se o usuário não digitar)
-        // Se o usuário já cadastrou com 55, não tem problema, o zap entende.
         document.getElementById('btn-action-whatsapp').href = `https://wa.me/55${cleanPhone}?text=${encodedMessage}`;
         
         // Abre o Modal

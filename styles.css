@@ -8,7 +8,7 @@
     --text-main: #1e293b;
     --text-muted: #64748b;
     --border-color: #e2e8f0;
-    --radius: 24px; /* Mais arredondado, estilo iOS */
+    --radius: 24px;
     
     /* Sombras */
     --shadow-lg: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
@@ -17,7 +17,7 @@
 * {
     box-sizing: border-box;
     -webkit-font-smoothing: antialiased;
-    -webkit-tap-highlight-color: transparent; /* Remove quadrado azul ao clicar no mobile */
+    -webkit-tap-highlight-color: transparent;
 }
 
 body {
@@ -50,7 +50,7 @@ body {
     to { opacity: 1; transform: scale(1); } 
 }
 
-/* O CONTAINER (A caixa branca) */
+/* O CONTAINER */
 .container {
     width: 100%;
     max-width: 450px; 
@@ -106,7 +106,7 @@ body {
     gap: 10px;
     position: relative;
     overflow: hidden;
-    text-decoration: none; /* Para o link parecer botão */
+    text-decoration: none; 
 }
 
 .btn:active { transform: scale(0.96); } 
@@ -183,13 +183,47 @@ h2 { color: var(--secondary-color); font-weight: 700; margin: 0 0 8px 0; font-si
     border-radius: 10px; margin-bottom: 12px; background: #e2e8f0; 
 }
 
+/* --- NOVOS ESTILOS PARA STATUS (PASSO 2) --- */
+.status-badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+}
+
+.status-available {
+    background-color: #dcfce7;
+    color: #166534;
+}
+
+.status-rented {
+    background-color: #fee2e2;
+    color: #991b1b;
+}
+
+/* Quando indisponível, a imagem fica levemente opaca */
+.card-unavailable img {
+    filter: grayscale(100%);
+    opacity: 0.7;
+}
+
+.card-unavailable h3, 
+.card-unavailable p {
+    color: #94a3b8;
+}
+
 .equipment-card { display: flex; flex-direction: column; }
 .equipment-card img { height: 140px; } 
 
 .equipment-actions { display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
-.edit-btn, .delete-btn { flex: 1; padding: 10px; border-radius: 10px; border: none; font-weight: 600; cursor: pointer;}
+.edit-btn, .delete-btn, .toggle-btn { flex: 1; padding: 10px; border-radius: 10px; border: none; font-weight: 600; cursor: pointer;}
 .edit-btn { background: #eff6ff; color: #2563eb; }
 .delete-btn { background: #fef2f2; color: #dc2626; }
+.toggle-btn { background: #f1f5f9; color: var(--text-main); border: 1px solid #cbd5e1; }
+.toggle-btn:hover { background: #e2e8f0; }
 
 /* Map */
 #map { border-radius: 16px; width: 100%; height: 300px; z-index: 1; }
@@ -211,10 +245,10 @@ h2 { color: var(--secondary-color); font-weight: 700; margin: 0 0 8px 0; font-si
 
 /* --- MODAL DE CONTATO --- */
 .modal-overlay {
-    display: none; /* Escondido por padrão */
+    display: none; 
     position: fixed;
     top: 0; left: 0; width: 100%; height: 100%;
-    background: rgba(0, 0, 0, 0.6); /* Fundo escuro transparente */
+    background: rgba(0, 0, 0, 0.6); 
     z-index: 2000;
     align-items: center;
     justify-content: center;
@@ -253,21 +287,9 @@ h2 { color: var(--secondary-color); font-weight: 700; margin: 0 0 8px 0; font-si
     gap: 12px;
 }
 
-/* Botão WhatsApp (NOVO) */
-.btn-whatsapp {
-    background-color: #25D366;
-    color: white;
-}
-
-.btn-call {
-    background-color: #22c55e; /* Verde WhatsApp/Telefone */
-    color: white;
-}
-
-.btn-copy {
-    background-color: #e2e8f0;
-    color: var(--text-main);
-}
+.btn-whatsapp { background-color: #25D366; color: white; }
+.btn-call { background-color: #22c55e; color: white; }
+.btn-copy { background-color: #e2e8f0; color: var(--text-main); }
 
 .btn-close-modal {
     position: absolute;
