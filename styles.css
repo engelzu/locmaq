@@ -194,11 +194,12 @@ h2 { color: var(--secondary-color); font-weight: 700; margin: 0 0 8px 0; font-si
     position: relative;
 }
 
-/* PREVIEW DA IMAGEM */
+/* PREVIEW DA IMAGEM NO UPLOAD (CORRIGIDO PARA QUADRADO) */
 #image-preview img {
     width: 100%;
-    height: 200px;
-    object-fit: cover;
+    height: auto;         /* Altura automática */
+    aspect-ratio: 1 / 1;  /* Força formato quadrado */
+    object-fit: cover;    /* Preenche o quadrado sem distorcer */
     border-radius: 12px;
     border: 2px solid #e2e8f0;
     margin-bottom: 15px;
@@ -207,8 +208,12 @@ h2 { color: var(--secondary-color); font-weight: 700; margin: 0 0 8px 0; font-si
 
 /* --- CORAÇÃO DE FAVORITO --- */
 .card-image-container { position: relative; width: 100%; }
+/* Também ajustado para quadrado na listagem */
 .card-image-container img {
-    width: 100%; height: 150px; object-fit: cover; 
+    width: 100%; 
+    height: auto;
+    aspect-ratio: 1 / 1; /* Força quadrado na lista também */
+    object-fit: cover; 
     border-radius: 10px; margin-bottom: 12px; background: #e2e8f0; 
 }
 
@@ -241,7 +246,14 @@ h2 { color: var(--secondary-color); font-weight: 700; margin: 0 0 8px 0; font-si
 .card-unavailable h3, .card-unavailable p { color: #94a3b8; }
 
 .equipment-card { display: flex; flex-direction: column; }
-.equipment-card img { height: 140px; } 
+/* Ajuste para imagem na lista do locador também ser quadrada */
+.equipment-card img { 
+    width: 100%;
+    height: auto;
+    aspect-ratio: 1 / 1;
+    object-fit: cover;
+    border-radius: 10px;
+} 
 
 .equipment-actions { display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
 .edit-btn, .delete-btn, .toggle-btn { flex: 1; padding: 10px; border-radius: 10px; border: none; font-weight: 600; cursor: pointer;}
@@ -284,7 +296,7 @@ h2 { color: var(--secondary-color); font-weight: 700; margin: 0 0 8px 0; font-si
     border: 1px solid #ffedd5;
 }
 
-/* --- LISTA DE COMENTÁRIOS (NOVO) --- */
+/* --- LISTA DE COMENTÁRIOS --- */
 .review-item {
     background-color: #f8fafc;
     border-radius: 12px;
