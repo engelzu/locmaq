@@ -1,0 +1,8 @@
+[{
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "com.locmaq.app",
+        "sha256_cert_fingerprints": ["BD:90:6C:B0:12:CF:63:FB:53:EF:66:9E:85:0A:C5:D6:B4:91:DC:E0:85:1F:D9:20:4D:F4:35:02:E6:6C:ED:94"]
+      }
+    }]
