@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel Admin - LocaMaq</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f1f5f9; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .box { background: white; padding: 30px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 100%; max-width: 400px; text-align: center; }
+        
+        input, select { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #cbd5e1; border-radius: 8px; box-sizing: border-box; font-size: 16px; }
+        
+        button { width: 100%; padding: 12px; background-color: #FF6B35; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px; }
+        button:hover { background-color: #e85d2a; }
+        
+        .hidden { display: none; }
+        
+        .result-card { background: #f8fafc; border: 1px solid #e2e8f0; padding: 15px; border-radius: 8px; margin-top: 20px; text-align: left; }
+        .result-card h3 { margin: 0 0 5px 0; color: #1e293b; }
+        .result-card p { margin: 0 0 15px 0; color: #64748b; font-size: 14px; }
+        .badge { padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; text-transform: uppercase; }
+        .badge-free { background: #e2e8f0; color: #475569; }
+        .badge-basic { background: #dbeafe; color: #1e40af; }
+        .badge-premium { background: #fce7f3; color: #9d174d; }
+        
+        #login-error { color: red; margin-top: 10px; font-size: 14px; }
+    </style>
+</head>
+<body>
+
+    <div id="lock-screen" class="box">
+        <h2>🔒 Acesso Restrito</h2>
+        <p>Digite a senha de administrador</p>
+        <form onsubmit="checkPassword(event)">
+            <input type="password" id="admin-pass" placeholder="Senha" autofocus>
+            <button type="submit">Entrar</button>
+            <div id="login-error" class="hidden">Senha incorreta!</div>
+        </form>
+    </div>
+
+    <div id="admin-panel" class="box hidden">
+        <h2>⚙️ Gestão de Planos</h2>
+        <p>Busque ou selecione o locador na lista</p>
+        
+        <form onsubmit="searchRenter(event)">
+            <input 
+                type="text" 
+                id="search-email" 
+                list="renters-list" 
+                placeholder="Digite ou selecione o e-mail..." 
+                autocomplete="off" 
+                required
+            >
+            <datalist id="renters-list">
+                </datalist>
+
+            <button type="submit">🔍 Buscar Locador</button>
+        </form>
+
+        <div id="loading" class="hidden" style="margin-top:20px;">Buscando...</div>
+
+        <div id="result-area" class="hidden">
+            <div class="result-card">
+                <h3 id="r-name">Nome do Locador</h3>
+                <p id="r-email">email@teste.com</p>
+                <p>Plano Atual: <span id="r-plan-badge" class="badge">FREE</span></p>
+                
+                <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 15px 0;">
+                
+                <label style="font-size: 14px; font-weight: 600;">Alterar para:</label>
+                <select id="new-plan-select">
+                    <option value="free">Plano Grátis</option>
+                    <option value="basic">Plano Básico (10 itens)</option>
+                    <option value="premium">Plano Premium (20 itens)</option>
+                </select>
+                
+                <input type="hidden" id="r-id">
+                <button onclick="savePlan()" style="background-color: #22c55e;">💾 Salvar Alteração</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/appwrite@11.0.0"></script>
+    <script>
+        // --- CONFIGURAÇÃO ---
+        const client = new Appwrite.Client();
+        client
+            .setEndpoint('https://fra.cloud.appwrite.io/v1')
+            .setProject('691771230014ab7e6072');
+
+        const databases = new Appwrite.Databases(client);
+        const DB_ID = '6917721d002bc00da375';
+        const RENTERS_COLLECTION = 'locations';
+
+        // --- LÓGICA DE SENHA ---
+        function checkPassword(e) {
+            e.preventDefault();
+            const pass = document.getElementById('admin-pass').value;
+            if (pass === '789512') {
+                document.getElementById('lock-screen').style.display = 'none';
+                document.getElementById('admin-panel').style.display = 'block';
+                loadAllRenters(); // CARREGA A LISTA ASSIM QUE LOGAR
+            } else {
+                document.getElementById('login-error').classList.remove('hidden');
+            }
+        }
+
+        // --- CARREGAR TODOS OS LOCADORES PARA O DROPDOWN ---
+        async function loadAllRenters() {
+            const dataList = document.getElementById('renters-list');
+            const searchInput = document.getElementById('search-email');
+            searchInput.placeholder = "Carregando lista...";
+            
+            try {
+                // Busca até 100 locadores (aumente o limit se tiver mais)
+                const response = await databases.listDocuments(
+                    DB_ID, 
+                    RENTERS_COLLECTION, 
+                    [ 
+                        Appwrite.Query.limit(100),
+                        Appwrite.Query.orderDesc('$createdAt') // Mais recentes primeiro
+                    ]
+                );
+
+                // Limpa a lista atual
+                dataList.innerHTML = '';
+
+                // Preenche a lista com E-mail e Nome
+                response.documents.forEach(renter => {
+                    const option = document.createElement('option');
+                    option.value = renter.email; // O valor que vai para o input
+                    option.innerText = `${renter.name} (${renter.plan})`; // Texto de ajuda (aparece em alguns browsers)
+                    dataList.appendChild(option);
+                });
+
+                searchInput.placeholder = "Selecione ou digite o e-mail...";
+
+            } catch (error) {
+                console.error("Erro ao carregar lista:", error);
+                searchInput.placeholder = "Erro ao carregar lista. Digite manualmente.";
+            }
+        }
+
+        // --- BUSCAR LOCADOR ESPECÍFICO ---
+        async function searchRenter(e) {
+            e.preventDefault();
+            const email = document.getElementById('search-email').value.trim();
+            const resultArea = document.getElementById('result-area');
+            const loading = document.getElementById('loading');
+
+            resultArea.classList.add('hidden');
+            loading.classList.remove('hidden');
+
+            try {
+                const response = await databases.listDocuments(
+                    DB_ID, 
+                    RENTERS_COLLECTION, 
+                    [ Appwrite.Query.equal('email', email) ]
+                );
+
+                loading.classList.add('hidden');
+
+                if (response.documents.length === 0) {
+                    alert('Nenhum locador encontrado com este e-mail.');
+                    return;
+                }
+
+                const renter = response.documents[0];
+                showRenterData(renter);
+
+            } catch (error) {
+                console.error(error);
+                loading.classList.add('hidden');
+                alert('Erro ao buscar. Verifique o e-mail.');
+            }
+        }
+
+        function showRenterData(renter) {
+            document.getElementById('result-area').classList.remove('hidden');
+            
+            document.getElementById('r-name').innerText = renter.name;
+            document.getElementById('r-email').innerText = renter.email;
+            document.getElementById('r-id').value = renter.$id;
+            
+            document.getElementById('new-plan-select').value = renter.plan;
+            
+            const badge = document.getElementById('r-plan-badge');
+            badge.innerText = renter.plan.toUpperCase();
+            badge.className = `badge badge-${renter.plan}`;
+        }
+
+        // --- SALVAR PLANO ---
+        async function savePlan() {
+            const docId = document.getElementById('r-id').value;
+            const newPlan = document.getElementById('new-plan-select').value;
+            const btn = document.querySelector('#result-area button');
+
+            const oldText = btn.innerText;
+            btn.innerText = 'Salvando...';
+            btn.disabled = true;
+
+            try {
+                await databases.updateDocument(
+                    DB_ID,
+                    RENTERS_COLLECTION,
+                    docId,
+                    { plan: newPlan }
+                );
+
+                alert(`Sucesso! Plano alterado para ${newPlan.toUpperCase()}.`);
+                
+                const badge = document.getElementById('r-plan-badge');
+                badge.innerText = newPlan.toUpperCase();
+                badge.className = `badge badge-${newPlan}`;
+                
+                // Atualiza a lista para refletir o novo plano na sugestão também
+                loadAllRenters(); 
+
+            } catch (error) {
+                console.error(error);
+                alert('Erro ao atualizar: ' + error.message);
+            } finally {
+                btn.innerText = oldText;
+                btn.disabled = false;
+            }
+        }
+    </script>
+</body>
+</html>
