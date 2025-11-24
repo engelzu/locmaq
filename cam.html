@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste de Câmera Isolado</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            padding: 20px;
+            text-align: center;
+            background-color: #f0f0f0;
+        }
+        .box {
+            background: white;
+            padding: 20px;
+            margin-bottom: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        h3 { margin-top: 0; color: #333; }
+        
+        /* ESTILO DO BOTÃO DO SEU APP (Técnica Overlay) */
+        .btn-overlay-container {
+            position: relative;
+            width: 100%;
+            height: 60px;
+            margin-top: 10px;
+        }
+        .btn-visual {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100%;
+            background-color: #e0f2fe;
+            color: #0284c7;
+            border: 2px dashed #7dd3fc;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 16px;
+        }
+        .input-invisible {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            cursor: pointer;
+            z-index: 999; /* Garante que está por cima */
+        }
+
+        /* PREVIEW */
+        img {
+            max-width: 100%;
+            height: auto;
+            margin-top: 10px;
+            border-radius: 8px;
+            display: none; /* Escondido até selecionar */
+            border: 3px solid #22c55e;
+        }
+        .log {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+            word-break: break-all;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>📸 Teste de Câmera</h1>
+    <p>Teste as 3 opções abaixo no seu celular.</p>
+
+    <div class="box">
+        <h3>1. Nativo (Sem Estilo)</h3>
+        <p>Se este não funcionar, é permissão do navegador.</p>
+        <input type="file" accept="image/*" onchange="showPreview(event, 'preview1', 'log1')">
+        <div id="log1" class="log"></div>
+        <img id="preview1">
+    </div>
+
+    <div class="box">
+        <h3>2. Forçar Câmera</h3>
+        <p>Usa o atributo <code>capture="environment"</code>.</p>
+        <input type="file" accept="image/*" capture="environment" onchange="showPreview(event, 'preview2', 'log2')">
+        <div id="log2" class="log"></div>
+        <img id="preview2">
+    </div>
+
+    <div class="box">
+        <h3>3. Estilo do Seu App</h3>
+        <p>Botão bonito com input invisível por cima.</p>
+        
+        <div class="btn-overlay-container">
+            <div class="btn-visual">
+                📷 Tocar Aqui (Overlay)
+            </div>
+            
+            <input 
+                type="file" 
+                accept="image/*" 
+                class="input-invisible"
+                onchange="showPreview(event, 'preview3', 'log3')"
+            >
+        </div>
+        
+        <div id="log3" class="log"></div>
+        <img id="preview3">
+    </div>
+
+    <script>
+        function showPreview(event, imgId, logId) {
+            const file = event.target.files[0];
+            const log = document.getElementById(logId);
+            const img = document.getElementById(imgId);
+
+            if (file) {
+                log.textContent = `Arquivo detectado: ${file.name} (${(file.size/1024).toFixed(2)} KB)`;
+                log.style.color = 'green';
+                
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    img.src = e.target.result;
+                    img.style.display = 'block';
+                }
+                reader.readAsDataURL(file);
+            } else {
+                log.textContent = "Nenhum arquivo selecionado.";
+                log.style.color = 'red';
+                img.style.display = 'none';
+            }
+        }
+    </script>
+
+</body>
+</html>
