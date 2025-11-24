@@ -2,10 +2,10 @@
 const apiKey = '435bf07fb6d444f8a0ca1af6906f1bce';
 
 // ======================================================
-// LINKS DO STRIPE
+// LINKS DO STRIPE (MODO DE PRODUÇÃO / REAL)
 // ======================================================
-const STRIPE_LINK_BASICO = 'https://buy.stripe.com/test_00w9AT3P32hIggO15a5EY01'; 
-const STRIPE_LINK_PREMIUM = 'https://buy.stripe.com/test_00w3cv0CR4pQfcKcNS5EY00'; 
+const STRIPE_LINK_BASICO = 'https://buy.stripe.com/fZu3cv50Ygvw1Mf4g0'; 
+const STRIPE_LINK_PREMIUM = 'https://buy.stripe.com/5kQ6oH8da934duX5k4'; 
 // ======================================================
 
 
@@ -42,7 +42,7 @@ let currentSession = {
     profile: null 
 };
 
-// Variáveis do MAPA (Importante: Globais)
+// Variáveis do MAPA
 let map; 
 let markersLayer = L.layerGroup(); 
 
@@ -135,7 +135,6 @@ function showScreen(screenId) {
         console.error(`Erro: Tela com ID '${screenId}' não encontrada.`);
     }
 
-    // Correção do erro "map.invalidateSize"
     if (screenId === 'user-dashboard' && map && typeof map.invalidateSize === 'function') {
         setTimeout(() => { map.invalidateSize(); }, 100); 
     }
@@ -421,7 +420,7 @@ async function editEquipment(id) {
 function previewImage(e) {
     if (e.target.files[0]) { const r = new FileReader(); r.onload=(ev)=>document.getElementById('image-preview').innerHTML=`<img src="${ev.target.result}">`; r.readAsDataURL(e.target.files[0]); }
 }
-// Stripe e Planos
+// Stripe e Planos (selectPlan, highlightCurrentPlan)
 async function selectPlan(planName) {
     if (planName === 'free') return showAlert('Você já está no plano Grátis.', 'warning');
     if (!currentSession.isLoggedIn || !currentSession.isRenter) return showAlert("Faça login como locador.");
@@ -460,12 +459,9 @@ function initializeMap() {
 
 async function searchRenters(event) {
     event.preventDefault();
-    
-    // 1. Muda a tela IMEDIATAMENTE
     showScreen('user-dashboard');
     document.getElementById('equipment-results').innerHTML = '<div class="spinner"></div>';
     
-    // 2. Carrega mapa e dados com delay para não travar animação
     setTimeout(async () => {
         initializeMap(); 
         try {
@@ -699,16 +695,9 @@ window.onclick = function(e) {
 
 let debounceTimer; 
 function handleAddressInput(event, listId) {
-    if (listId.startsWith('reg-')) {
-        const prefix = event.target.id.replace('-street', '');
-        clearAddressFields(prefix);
-    }
-    
+    if (listId.startsWith('reg-')) clearAddressFields(event.target.id.replace('-street', ''));
     clearTimeout(debounceTimer);
-    const query = event.target.value;
-    debounceTimer = setTimeout(() => {
-        searchAddress(query, listId);
-    }, 300); 
+    debounceTimer = setTimeout(() => { searchAddress(event.target.value, listId); }, 300); 
 }
 
 async function searchAddress(query, listId) {
