@@ -260,13 +260,14 @@
                 <div style="position: relative; margin-top: 15px; margin-bottom: 15px; height: 50px;">
                     <div class="btn btn-secondary" style="display: flex; align-items: center; justify-content: center; gap: 10px; height: 100%; background-color: #e0f2fe; color: #0284c7; border: 2px dashed #7dd3fc;">
                         <span style="font-size: 1.5rem;">📷</span> 
-                        <span>Tirar Foto ou Abrir Galeria</span>
+                        <span>Tirar Foto Agora</span>
                     </div>
 
                     <input 
                         type="file" 
                         id="equipment-image" 
                         accept="image/*" 
+                        capture="environment"
                         onchange="previewImage(event)" 
                         style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; z-index: 999;" 
                     />
