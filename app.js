@@ -4,8 +4,8 @@ const apiKey = '435bf07fb6d444f8a0ca1af6906f1bce';
 // ======================================================
 // LINKS DO STRIPE (MODO DE PRODUÇÃO / REAL)
 // 
-const STRIPE_LINK_BASICO ='https://buy.stripe.com/fZu28r6520wy0Ib4g05ZC02';
-//const STRIPE_LINK_BASICO = 'https://buy.stripe.com/fZu3cv50Ygvw1Mf4g0'; 
+//const STRIPE_LINK_BASICO ='https://buy.stripe.com/fZu28r6520wy0Ib4g05ZC02';
+const STRIPE_LINK_BASICO = 'https://buy.stripe.com/fZu3cv50Ygvw1Mf4g0'; 
 const STRIPE_LINK_PREMIUM = 'https://buy.stripe.com/5kQ6oH8da934duX5k4'; 
 // ======================================================
 
@@ -836,3 +836,4 @@ async function loadCities(state, selectId) {
     } catch (error) { select.innerHTML = '<option value="">Erro</option>'; }
 
 }
+
