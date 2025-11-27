@@ -1,8 +1,8 @@
-// CHAVE DA API GEOAPIFY (Ainda usada para o usuário buscar cidade, se mantiver essa função)
+// CHAVE DA API GEOAPIFY (Ainda usada para o usuário buscar cidade)
 const apiKey = '435bf07fb6d444f8a0ca1af6906f1bce';
 
 // ======================================================
-// LINKS DO STRIPE (MODO DE PRODUÇÃO / REAL)
+// LINKS DO STRIPE
 // ======================================================
 const STRIPE_LINK_BASICO = 'https://buy.stripe.com/fZu3cv50Ygvw1Mf4g0'; 
 const STRIPE_LINK_PREMIUM = 'https://buy.stripe.com/5kQ6oH8da934duX5k4'; 
@@ -41,16 +41,12 @@ let currentSession = {
     profile: null 
 };
 
-// Variáveis do MAPA
 let map; 
 let markersLayer = L.layerGroup(); 
-
-// Variáveis Temporárias
 let currentContactPhone = '';
 let currentReviewRenterId = '';
 let currentRating = 0;
 
-// Limites dos Planos
 const planLimits = {
     free: { max: 1, editLock: true },
     basic: { max: 10, editLock: false },
@@ -58,7 +54,71 @@ const planLimits = {
 };
 
 // ======================================================
-// INICIALIZAÇÃO DO SISTEMA
+// API IBGE (GLOBALMENTE ACESSÍVEL)
+// ======================================================
+
+// Carrega Estados na Select especificada
+async function loadIbgeStates(selectId) {
+    const select = document.getElementById(selectId);
+    if (!select) return;
+    
+    select.innerHTML = '<option value="">Carregando...</option>';
+
+    try {
+        const response = await fetch('https://servicodados.ibge.gov.br/api/v1/localidades/estados?orderBy=nome');
+        const states = await response.json();
+
+        select.innerHTML = '<option value="">Selecione o Estado</option>';
+        states.forEach(state => {
+            // Usa sigla como valor (SP, MG, etc.)
+            const option = document.createElement('option');
+            option.value = state.sigla;
+            option.text = state.nome;
+            select.appendChild(option);
+        });
+    } catch (error) {
+        console.error("Erro IBGE:", error);
+        select.innerHTML = '<option value="">Erro ao carregar</option>';
+    }
+}
+
+// Carrega Cidades baseado no Estado selecionado
+async function loadIbgeCities(stateSelectId, citySelectId) {
+    const stateSigla = document.getElementById(stateSelectId).value;
+    const citySelect = document.getElementById(citySelectId);
+    
+    if (!stateSigla) {
+        citySelect.innerHTML = '<option value="">-- Aguardando Estado --</option>';
+        citySelect.disabled = true;
+        return;
+    }
+
+    citySelect.innerHTML = '<option value="">Carregando...</option>';
+    citySelect.disabled = false;
+
+    try {
+        const response = await fetch(`https://servicodados.ibge.gov.br/api/v1/localidades/estados/${stateSigla}/municipios`);
+        const cities = await response.json();
+
+        citySelect.innerHTML = '<option value="">Selecione a Cidade</option>';
+        cities.forEach(city => {
+            const option = document.createElement('option');
+            option.value = city.nome;
+            option.text = city.nome;
+            citySelect.appendChild(option);
+        });
+    } catch (error) {
+        console.error("Erro IBGE Cidades:", error);
+        citySelect.innerHTML = '<option value="">Erro ao carregar</option>';
+    }
+}
+
+// Garante que as funções sejam globais
+window.loadIbgeStates = loadIbgeStates;
+window.loadIbgeCities = loadIbgeCities;
+
+// ======================================================
+// INICIALIZAÇÃO
 // ======================================================
 document.addEventListener('DOMContentLoaded', () => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -66,7 +126,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const secret = urlParams.get('secret');
 
     if (userId && secret) {
-        console.log("Detectado fluxo de recuperação de senha.");
         showScreen('reset-password-screen');
     } else {
         initializeApp();
@@ -86,7 +145,6 @@ async function initializeApp() {
             try {
                  profileDoc = await databases.getDocument(DB_ID, USERS_COLLECTION_ID, loggedInAccount.$id);
             } catch (userError) {
-                console.error("Conta logada não encontrada em 'users' nem 'renters'", userError);
                 await account.deleteSession('current'); 
                 showScreen('home-screen');
                 return;
@@ -107,67 +165,12 @@ async function initializeApp() {
         }
         
     } catch (error) {
-        console.log("Nenhuma sessão ativa.");
         showScreen('home-screen');
     }
 }
 
 // ======================================================
-// API IBGE (ESTADOS E CIDADES) - REUTILIZÁVEL
-// ======================================================
-
-// Aceita o ID do select de destino
-async function loadIbgeStates(selectId) {
-    const select = document.getElementById(selectId);
-    if (!select) return;
-    
-    select.innerHTML = '<option value="">Carregando...</option>';
-
-    try {
-        // Busca estados direto do IBGE
-        const response = await fetch('https://servicodados.ibge.gov.br/api/v1/localidades/estados?orderBy=nome');
-        const states = await response.json();
-
-        select.innerHTML = '<option value="">Selecione o Estado</option>';
-        states.forEach(state => {
-            select.innerHTML += `<option value="${state.sigla}">${state.nome}</option>`;
-        });
-    } catch (error) {
-        console.error("Erro IBGE:", error);
-        select.innerHTML = '<option value="">Erro ao carregar</option>';
-    }
-}
-
-// Aceita ID do Estado (origem) e ID da Cidade (destino)
-async function loadIbgeCities(stateSelectId, citySelectId) {
-    const stateSigla = document.getElementById(stateSelectId).value;
-    const citySelect = document.getElementById(citySelectId);
-    
-    if (!stateSigla) {
-        citySelect.innerHTML = '<option value="">Selecione primeiro o estado...</option>';
-        citySelect.disabled = true;
-        return;
-    }
-
-    citySelect.innerHTML = '<option value="">Carregando...</option>';
-    citySelect.disabled = false;
-
-    try {
-        const response = await fetch(`https://servicodados.ibge.gov.br/api/v1/localidades/estados/${stateSigla}/municipios`);
-        const cities = await response.json();
-
-        citySelect.innerHTML = '<option value="">Selecione a Cidade</option>';
-        cities.forEach(city => {
-            citySelect.innerHTML += `<option value="${city.nome}">${city.nome}</option>`;
-        });
-    } catch (error) {
-        console.error("Erro IBGE Cidades:", error);
-        citySelect.innerHTML = '<option value="">Erro ao carregar</option>';
-    }
-}
-
-// ======================================================
-// NAVEGAÇÃO E ALERTAS
+// NAVEGAÇÃO
 // ======================================================
 function showScreen(screenId) {
     document.querySelectorAll('.screen').forEach(screen => {
@@ -181,7 +184,7 @@ function showScreen(screenId) {
     if (screenId === 'upgrade-plan') { highlightCurrentPlan(); }
     if (screenId === 'user-favorites') { loadFavoritesScreen(); }
     
-    // CARREGA LISTA DO IBGE NO CADASTRO
+    // CARREGA IBGE NO CADASTRO
     if (screenId === 'renter-register') { loadIbgeStates('reg-renter-state'); } 
 
     const element = document.getElementById(screenId);
@@ -203,7 +206,7 @@ function showAlert(message, type = 'error') {
 }
 
 // ======================================================
-// AUTENTICAÇÃO E SESSÃO
+// CADASTRO E LOGIN
 // ======================================================
 
 async function userRegister(event) {
@@ -258,44 +261,27 @@ async function renterRegister(event) {
         return showAlert('Selecione Estado e Cidade.');
     }
 
-    // --- TENTATIVA AUTOMÁTICA DE OBTER LAT/LNG (NOMINATIM GRATUITO) ---
+    // --- Geocodificação ---
     let lat = 0;
     let lng = 0;
-    
     try {
         const fullAddress = `${street}, ${number}, ${neighborhood}, ${city}, ${state}, Brazil`;
         const geoUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(fullAddress)}`;
-        
         const geoRes = await fetch(geoUrl);
         const geoData = await geoRes.json();
-        
         if (geoData && geoData.length > 0) {
             lat = parseFloat(geoData[0].lat);
             lng = parseFloat(geoData[0].lon);
-            console.log("Geocodificação sucesso:", lat, lng);
         }
-    } catch (e) {
-        console.log("Erro ao geocodificar, seguindo sem mapa preciso.");
-    }
+    } catch (e) { console.log("Erro geo:", e); }
 
     try {
         const authUser = await account.create(ID.unique(), email, password, name);
-        
-        // Concatena Rua e Número para salvar no campo 'street' existente
         const fullAddressStr = `${street}, ${number}`;
 
         const renterData = { 
-            name, 
-            phone, 
-            street: fullAddressStr, 
-            neighborhood, 
-            city, 
-            state, 
-            lat, 
-            lng, 
-            email, 
-            plan: 'free', 
-            renterId: authUser.$id 
+            name, phone, street: fullAddressStr, neighborhood, city, state, lat, lng, email, 
+            plan: 'free', renterId: authUser.$id 
         };
 
         await databases.createDocument(DB_ID, RENTERS_COLLECTION_ID, authUser.$id, renterData);
@@ -351,7 +337,6 @@ async function finishPasswordReset(event) {
     const p1 = document.getElementById('new-password').value;
     if (p1 !== document.getElementById('confirm-new-password').value) return showAlert('Senhas não conferem.');
     const params = new URLSearchParams(window.location.search);
-    if (!params.get('userId') || !params.get('secret')) return showAlert('Link inválido.');
     try {
         await account.updateRecovery(params.get('userId'), params.get('secret'), p1, p1);
         showAlert('Senha alterada!', 'success');
@@ -390,7 +375,6 @@ async function updateUserProfile(event) {
     } catch (e) { showAlert(`Erro: ${e.message}`); }
 }
 
-// FUNÇÃO ATUALIZADA: Carrega o Perfil de Locador com campos separados
 async function loadRenterProfile() {
     if (!currentSession.isLoggedIn || !currentSession.isRenter) return;
     const r = currentSession.profile;
@@ -398,7 +382,6 @@ async function loadRenterProfile() {
     document.getElementById('edit-renter-name').value = r.name;
     document.getElementById('edit-renter-phone').value = r.phone;
     
-    // Tenta separar Rua e Número da string salva (ex: "Rua X, 123")
     if (r.street && r.street.includes(',')) {
         const parts = r.street.split(',');
         const num = parts.pop().trim(); 
@@ -413,17 +396,14 @@ async function loadRenterProfile() {
     document.getElementById('edit-renter-neighborhood').value = r.neighborhood;
     document.getElementById('edit-renter-email').value = r.email;
 
-    // Carrega Estados e Seleciona
     await loadIbgeStates('edit-renter-state');
     const elState = document.getElementById('edit-renter-state');
     elState.value = r.state; 
 
-    // Carrega Cidades e Seleciona
     await loadIbgeCities('edit-renter-state', 'edit-renter-city');
     document.getElementById('edit-renter-city').value = r.city;
 }
 
-// FUNÇÃO ATUALIZADA: Salva o Perfil de Locador e atualiza mapa
 async function updateRenterProfile(event) {
     event.preventDefault();
     if (!currentSession.isLoggedIn || !currentSession.isRenter) return;
@@ -440,7 +420,6 @@ async function updateRenterProfile(event) {
     const state = document.getElementById('edit-renter-state').value;
     const fullAddressStr = `${street}, ${number}`;
 
-    // Tenta obter novas coordenadas se o endereço mudou
     let lat = currentSession.profile.lat;
     let lng = currentSession.profile.lng;
 
@@ -452,9 +431,8 @@ async function updateRenterProfile(event) {
         if (geoData && geoData.length > 0) {
             lat = parseFloat(geoData[0].lat);
             lng = parseFloat(geoData[0].lon);
-            console.log("Coordenadas atualizadas:", lat, lng);
         }
-    } catch (e) { console.log("Erro ao atualizar coordenadas, mantendo anteriores."); }
+    } catch (e) { }
 
     try {
         await databases.updateDocument(DB_ID, RENTERS_COLLECTION_ID, currentSession.profile.$id, {
@@ -575,7 +553,6 @@ async function editEquipment(id) {
 function previewImage(e) {
     if (e.target.files[0]) { const r = new FileReader(); r.onload=(ev)=>document.getElementById('image-preview').innerHTML=`<img src="${ev.target.result}">`; r.readAsDataURL(e.target.files[0]); }
 }
-// Stripe e Planos (selectPlan, highlightCurrentPlan)
 async function selectPlan(planName) {
     if (planName === 'free') return showAlert('Você já está no plano Grátis.', 'warning');
     if (!currentSession.isLoggedIn || !currentSession.isRenter) return showAlert("Faça login como locador.");
@@ -599,16 +576,12 @@ function highlightCurrentPlan() {
 }
 
 // ======================================================
-// BUSCA, MAPA E AVALIAÇÕES
+// BUSCA E MAPA
 // ======================================================
-
-// Função para inicializar o mapa
 function initializeMap() {
     if (map) return; 
     map = L.map('map').setView([-15.78, -47.92], 4); 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; OpenStreetMap'
-    }).addTo(map);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap' }).addTo(map);
     markersLayer.addTo(map);
 }
 
@@ -616,17 +589,13 @@ async function searchRenters(event) {
     event.preventDefault();
     showScreen('user-dashboard');
     document.getElementById('equipment-results').innerHTML = '<div class="spinner"></div>';
-    
     setTimeout(async () => {
         initializeMap(); 
         try {
             await populateEquipmentDropdown(); 
             markersLayer.clearLayers();
             document.getElementById('equipment-results').innerHTML = `<div class="empty-state"><p>Selecione um equipamento e clique em 'Pesquisar'.</p></div>`;
-        } catch (error) {
-            console.error("Erro busca:", error);
-            showAlert("Erro ao carregar cidades.");
-        }
+        } catch (error) { showAlert("Erro ao carregar cidades."); }
     }, 100);
 }
 
@@ -634,30 +603,15 @@ async function populateEquipmentDropdown() {
     const state = document.getElementById('user-state-select').value;
     const city = document.getElementById('user-city-select').value;
     const select = document.getElementById('equipment-select');
-    
     if (!select) return;
     select.innerHTML = '<option value="">-- Carregando... --</option>';
-
     try {
-        const response = await databases.listDocuments(DB_ID, EQUIPMENT_COLLECTION_ID, [
-            Query.equal('state', state),
-            Query.equal('city', city)
-        ]);
-        
+        const response = await databases.listDocuments(DB_ID, EQUIPMENT_COLLECTION_ID, [Query.equal('state', state), Query.equal('city', city)]);
         const equipmentNames = [...new Set(response.documents.map(eq => eq.name))].sort((a, b) => a.localeCompare(b));
         select.innerHTML = '<option value="">-- Todos os Equipamentos --</option>';
-        
-        if (equipmentNames.length === 0) {
-             select.innerHTML = '<option value="">-- Nenhum equipamento nesta cidade --</option>';
-        } else {
-            equipmentNames.forEach(name => {
-                select.innerHTML += `<option value="${name}">${name}</option>`;
-            });
-        }
-    } catch (error) {
-        console.error("Erro ao popular dropdown:", error);
-        select.innerHTML = '<option value="">-- Erro ao carregar --</option>';
-    }
+        if (equipmentNames.length === 0) select.innerHTML = '<option value="">-- Nenhum equipamento nesta cidade --</option>';
+        else equipmentNames.forEach(name => select.innerHTML += `<option value="${name}">${name}</option>`);
+    } catch (error) { select.innerHTML = '<option value="">-- Erro ao carregar --</option>'; }
 }
 
 async function searchEquipment() {
@@ -666,7 +620,6 @@ async function searchEquipment() {
     const term = document.getElementById('equipment-select').value.toLowerCase();
     const volt = document.getElementById('filter-voltage').value;
     const price = document.getElementById('filter-max-price').value;
-    
     const resDiv = document.getElementById('equipment-results');
     resDiv.innerHTML = '<div class="spinner"></div>'; markersLayer.clearLayers();
 
@@ -677,22 +630,18 @@ async function searchEquipment() {
 
     try {
         const res = await databases.listDocuments(DB_ID, EQUIPMENT_COLLECTION_ID, q);
-        
         let favs = [];
         if (currentSession.isLoggedIn && !currentSession.isRenter) {
             try {
                 const f = await databases.listDocuments(DB_ID, FAVORITES_COLLECTION_ID, [Query.equal('userId', currentSession.account.$id)]);
                 favs = f.documents.map(x => x.equipmentId);
-            } catch(e) { console.log(e); }
+            } catch(e) {}
         }
-
         if (res.documents.length === 0) { resDiv.innerHTML = '<p>Nada encontrado.</p>'; return; }
         resDiv.innerHTML = ''; const bounds = [];
-
         for (const eq of res.documents) {
             const isAv = (eq.isAvailable !== false);
             const isFav = favs.includes(eq.$id);
-            
             const div = document.createElement('div');
             div.className = `result-card ${isAv?'':'card-unavailable'}`;
             div.innerHTML = `
@@ -710,16 +659,12 @@ async function searchEquipment() {
                 <button class="btn btn-rate" onclick="openReviewModal('${eq.renterId}')" style="margin-top:5px; font-size:0.8rem;">⭐ Avaliar Locador</button>
             `;
             resDiv.appendChild(div);
-
             if (eq.lat) { const ll=[eq.lat, eq.lng]; L.marker(ll).addTo(markersLayer).bindPopup(eq.name); bounds.push(ll); }
             loadRenterRating(eq.renterId); 
         }
         if (bounds.length) map.fitBounds(bounds, {padding:[50,50]});
-
-    } catch (e) { console.error(e); resDiv.innerHTML = '<p>Erro na busca.</p>'; }
+    } catch (e) { resDiv.innerHTML = '<p>Erro na busca.</p>'; }
 }
-
-// --- SISTEMA DE AVALIAÇÃO ---
 
 async function loadRenterRating(renterId) {
     try {
@@ -735,9 +680,8 @@ async function loadRenterRating(renterId) {
             el.innerHTML = `⭐ <strong>${avg}</strong> <span style="font-size:0.8rem; color:#64748b;">(${res.total} ver comentários)</span>`;
             el.onclick = () => openReadReviewsModal(renterId);
         });
-    } catch (error) { console.error("Erro nota:", error); }
+    } catch (error) {}
 }
-
 function openReviewModal(renterId) {
     if (!currentSession.isLoggedIn || currentSession.isRenter) return showAlert('Faça login como usuário.');
     currentReviewRenterId = renterId; currentRating = 0;
@@ -763,32 +707,21 @@ async function submitReview() {
         showAlert('Avaliação enviada!', 'success'); closeReviewModal(); loadRenterRating(currentReviewRenterId);
     } catch (e) { showAlert('Erro ao enviar.'); }
 }
-
 async function openReadReviewsModal(renterId) {
     const container = document.getElementById('reviews-list-container');
     container.innerHTML = '<div class="spinner"></div>';
     document.getElementById('read-reviews-modal').style.display = 'flex';
     try {
-        const response = await databases.listDocuments(DB_ID, REVIEWS_COLLECTION_ID, [
-            Query.equal('renterId', renterId), Query.orderDesc('$createdAt'), Query.limit(20)
-        ]);
+        const response = await databases.listDocuments(DB_ID, REVIEWS_COLLECTION_ID, [Query.equal('renterId', renterId), Query.orderDesc('$createdAt'), Query.limit(20)]);
         container.innerHTML = '';
         if (response.documents.length === 0) { container.innerHTML = '<p style="text-align:center;">Sem comentários.</p>'; return; }
         response.documents.forEach(review => {
             let starsDisplay = ''; for(let i=0; i<5; i++) starsDisplay += (i < review.stars) ? '★' : '☆';
-            container.innerHTML += `
-                <div class="review-item">
-                    <div class="review-header"><span class="review-user">${review.userName||'Anônimo'}</span><span class="review-stars">${starsDisplay}</span></div>
-                    <div class="review-text">${review.comment||''}</div>
-                    <div class="review-date">${new Date(review.$createdAt).toLocaleDateString('pt-BR')}</div>
-                </div>`;
+            container.innerHTML += `<div class="review-item"><div class="review-header"><span class="review-user">${review.userName||'Anônimo'}</span><span class="review-stars">${starsDisplay}</span></div><div class="review-text">${review.comment||''}</div><div class="review-date">${new Date(review.$createdAt).toLocaleDateString('pt-BR')}</div></div>`;
         });
     } catch (e) { container.innerHTML = '<p>Erro.</p>'; }
 }
 function closeReadReviewsModal() { document.getElementById('read-reviews-modal').style.display = 'none'; }
-
-// --- FAVORITOS & AUXILIARES ---
-
 async function toggleFavorite(equipmentId, btnElement) {
     if (!currentSession.isLoggedIn || currentSession.isRenter) return showAlert('Faça login como usuário.');
     const userId = currentSession.account.$id;
@@ -801,9 +734,8 @@ async function toggleFavorite(equipmentId, btnElement) {
             await databases.createDocument(DB_ID, FAVORITES_COLLECTION_ID, ID.unique(), { userId, equipmentId });
             btnElement.classList.add('active'); btnElement.innerHTML='❤️';
         }
-    } catch (e) { console.error(e); showAlert('Erro favorito.'); }
+    } catch (e) { showAlert('Erro favorito.'); }
 }
-
 async function loadFavoritesScreen() {
     const list = document.getElementById('favorites-list');
     list.innerHTML = '<div class="spinner"></div>';
@@ -820,7 +752,6 @@ async function loadFavoritesScreen() {
         }
     } catch (e) { list.innerHTML = '<p>Erro.</p>'; }
 }
-
 async function contactRenter(renterId, equipmentName) {
     try {
         const renter = await databases.getDocument(DB_ID, RENTERS_COLLECTION_ID, renterId);
@@ -848,127 +779,6 @@ window.onclick = function(e) {
     if (e.target === document.getElementById('read-reviews-modal')) closeReadReviewsModal();
 }
 
-let debounceTimer; 
-function handleAddressInput(event, listId) {
-    if (listId.startsWith('reg-')) clearAddressFields(event.target.id.replace('-street', ''));
-    clearTimeout(debounceTimer);
-    debounceTimer = setTimeout(() => { searchAddress(event.target.value, listId); }, 300); 
-}
-
-async function searchAddress(query, listId) {
-    if (query.length < 3) {
-        document.getElementById(listId).classList.remove('show');
-        return;
-    }
-
-    const list = document.getElementById(listId);
-    list.innerHTML = '<div class="loading">Buscando...</div>';
-    list.classList.add('show');
-
-    try {
-        const response = await fetch(
-            `https://api.geoapify.com/v1/geocode/autocomplete?text=${encodeURIComponent(query)}&lang=pt&limit=5&filter=countrycode:br&apiKey=${apiKey}`
-        );
-        
-        const data = await response.json();
-        
-        if (data.features && data.features.length > 0) {
-            displayResults(data.features, listId);
-        } else {
-            list.innerHTML = '<div class="no-results">Nenhum resultado encontrado</div>';
-        }
-    } catch (error) {
-        console.error('Erro ao buscar endereços:', error);
-        list.innerHTML = '<div class="no-results">Erro ao buscar endereços</div>';
-    }
-}
-
-function displayResults(features, listId) {
-    const list = document.getElementById(listId);
-    list.innerHTML = '';
-
-    features.forEach(feature => {
-        const item = document.createElement('div');
-        item.className = 'autocomplete-item';
-        
-        const formatted = feature.properties.formatted;
-        
-        item.innerHTML = `<strong>${formatted}</strong>`;
-        
-        item.onclick = () => selectAddress(feature, listId);
-        list.appendChild(item);
-    });
-
-    list.classList.add('show');
-}
-
-function selectAddress(feature, listId) {
-    const inputId = listId.replace('List', ''); 
-    const prefix = inputId.replace('-street', ''); 
-    const input = document.getElementById(inputId);
-    
-    // CORREÇÃO: Se não tiver 'street', usa o endereço completo
-    if (input) {
-        const p = feature.properties;
-        input.value = p.street || p.address_line1 || p.formatted || ''; 
-    }
-
-    populateAddressFields(prefix, feature); 
-    
-    // Esconde a lista
-    document.getElementById(listId).classList.remove('show');
-}
-
-function populateAddressFields(prefix, feature) {
-    const p = feature.properties;
-    
-    console.log("Endereço selecionado:", p);
-
-    // Fallbacks para garantir preenchimento
-    const bairro = p.suburb || p.district || p.neighbourhood || '';
-    const cidade = p.city || p.municipality || p.town || p.village || '';
-    const estado = p.state_code || p.state || '';
-
-    // Preenche campos visuais
-    const fieldBairro = document.getElementById(`${prefix}-neighborhood`);
-    const fieldCidade = document.getElementById(`${prefix}-city`);
-    const fieldEstado = document.getElementById(`${prefix}-state`);
-
-    if (fieldBairro) fieldBairro.value = bairro;
-    if (fieldCidade) fieldCidade.value = cidade;
-    if (fieldEstado) fieldEstado.value = estado;
-
-    // Se for Locador, preenche coordenadas
-    if (prefix.includes('renter')) {
-        const fieldLat = document.getElementById(`${prefix}-lat`);
-        const fieldLng = document.getElementById(`${prefix}-lng`);
-        
-        if (fieldLat) fieldLat.value = p.lat || '';
-        if (fieldLng) fieldLng.value = p.lon || '';
-    }
-}
-
-// Fechar autocomplete ao clicar fora
-document.addEventListener('click', function(e) {
-    if (!e.target.closest('.autocomplete-container')) {
-        document.querySelectorAll('.autocomplete-list').forEach(list => list.classList.remove('show'));
-    }
-});
-
-function clearAddressFields(prefix) {
-    document.getElementById(`${prefix}-neighborhood`).value = '';
-    document.getElementById(`${prefix}-city`).value = '';
-    document.getElementById(`${prefix}-state`).value = '';
-
-    if (prefix.includes('renter')) {
-        document.getElementById(`${prefix}-lat`).value = '';
-        document.getElementById(`${prefix}-lng`).value = '';
-    }
-}
-
-// --- CARREGAMENTO DINÂMICO DE ESTADO/CIDADE (USUÁRIO AINDA USA O DB POIS JÁ ESTÁ NO DB) ---
-// SE QUISER MUDAR O USUÁRIO PARA USAR IBGE TAMBÉM, BASTA CHAMAR loadIbgeStates() EM VEZ DESSA
-
 async function loadStates(selectId) {
     const select = document.getElementById(selectId);
     select.innerHTML = '<option value="">Carregando...</option>';
@@ -979,7 +789,6 @@ async function loadStates(selectId) {
         states.forEach(s => { select.innerHTML += `<option value="${s}">${s}</option>`; });
     } catch (error) { select.innerHTML = '<option value="">Erro</option>'; }
 }
-
 async function loadCities(state, selectId) {
     const select = document.getElementById(selectId);
     select.innerHTML = '<option value="">Carregando...</option>';
