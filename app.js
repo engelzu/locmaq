@@ -8,7 +8,6 @@ const STRIPE_LINK_BASICO = 'https://buy.stripe.com/fZu3cv50Ygvw1Mf4g0';
 const STRIPE_LINK_PREMIUM = 'https://buy.stripe.com/5kQ6oH8da934duX5k4'; 
 // ======================================================
 
-
 // ======================================================
 // INICIALIZAÇÃO DO APPWRITE
 // ======================================================
@@ -188,8 +187,6 @@ function showScreen(screenId) {
     const element = document.getElementById(screenId);
     if (element) {
         element.classList.add('active');
-    } else {
-        console.error(`Erro: Tela com ID '${screenId}' não encontrada.`);
     }
 
     if (screenId === 'user-dashboard' && map && typeof map.invalidateSize === 'function') {
@@ -280,7 +277,6 @@ async function renterRegister(event) {
     } catch (e) {
         console.log("Erro ao geocodificar, seguindo sem mapa preciso.");
     }
-    // ------------------------------------------------------------------
 
     try {
         const authUser = await account.create(ID.unique(), email, password, name);
@@ -394,7 +390,7 @@ async function updateUserProfile(event) {
     } catch (e) { showAlert(`Erro: ${e.message}`); }
 }
 
-// Função Atualizada: Carrega Perfil com IBGE e separação de endereço
+// FUNÇÃO ATUALIZADA: Carrega o Perfil de Locador com campos separados
 async function loadRenterProfile() {
     if (!currentSession.isLoggedIn || !currentSession.isRenter) return;
     const r = currentSession.profile;
@@ -402,11 +398,9 @@ async function loadRenterProfile() {
     document.getElementById('edit-renter-name').value = r.name;
     document.getElementById('edit-renter-phone').value = r.phone;
     
-    // Tenta separar Rua e Número da string salva no DB (ex: "Rua X, 123")
-    // Se não tiver vírgula, coloca tudo na Rua.
+    // Tenta separar Rua e Número da string salva (ex: "Rua X, 123")
     if (r.street && r.street.includes(',')) {
         const parts = r.street.split(',');
-        // Pega a última parte como número, e o resto como rua
         const num = parts.pop().trim(); 
         const rua = parts.join(',').trim();
         document.getElementById('edit-renter-street').value = rua;
@@ -424,12 +418,12 @@ async function loadRenterProfile() {
     const elState = document.getElementById('edit-renter-state');
     elState.value = r.state; 
 
-    // Carrega Cidades (baseado no estado selecionado) e Seleciona
+    // Carrega Cidades e Seleciona
     await loadIbgeCities('edit-renter-state', 'edit-renter-city');
     document.getElementById('edit-renter-city').value = r.city;
 }
 
-// Função Atualizada: Salva Perfil com Geocodificação
+// FUNÇÃO ATUALIZADA: Salva o Perfil de Locador e atualiza mapa
 async function updateRenterProfile(event) {
     event.preventDefault();
     if (!currentSession.isLoggedIn || !currentSession.isRenter) return;
@@ -446,7 +440,7 @@ async function updateRenterProfile(event) {
     const state = document.getElementById('edit-renter-state').value;
     const fullAddressStr = `${street}, ${number}`;
 
-    // Recalcula coordenadas (Lat/Lng) se o endereço mudou
+    // Tenta obter novas coordenadas se o endereço mudou
     let lat = currentSession.profile.lat;
     let lng = currentSession.profile.lng;
 
