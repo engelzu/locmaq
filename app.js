@@ -114,11 +114,12 @@ async function initializeApp() {
 }
 
 // ======================================================
-// API IBGE (ESTADOS E CIDADES)
+// API IBGE (ESTADOS E CIDADES) - REUTILIZÁVEL
 // ======================================================
 
-async function loadIbgeStates() {
-    const select = document.getElementById('reg-renter-state');
+// Aceita o ID do select de destino
+async function loadIbgeStates(selectId) {
+    const select = document.getElementById(selectId);
     if (!select) return;
     
     select.innerHTML = '<option value="">Carregando...</option>';
@@ -130,7 +131,6 @@ async function loadIbgeStates() {
 
         select.innerHTML = '<option value="">Selecione o Estado</option>';
         states.forEach(state => {
-            // Salvamos a Sigla (ex: SP) no value
             select.innerHTML += `<option value="${state.sigla}">${state.nome}</option>`;
         });
     } catch (error) {
@@ -139,9 +139,10 @@ async function loadIbgeStates() {
     }
 }
 
-async function loadIbgeCities() {
-    const stateSigla = document.getElementById('reg-renter-state').value;
-    const citySelect = document.getElementById('reg-renter-city');
+// Aceita ID do Estado (origem) e ID da Cidade (destino)
+async function loadIbgeCities(stateSelectId, citySelectId) {
+    const stateSigla = document.getElementById(stateSelectId).value;
+    const citySelect = document.getElementById(citySelectId);
     
     if (!stateSigla) {
         citySelect.innerHTML = '<option value="">Selecione primeiro o estado...</option>';
@@ -181,8 +182,8 @@ function showScreen(screenId) {
     if (screenId === 'upgrade-plan') { highlightCurrentPlan(); }
     if (screenId === 'user-favorites') { loadFavoritesScreen(); }
     
-    // CARREGA LISTA DO IBGE SE FOR TELA DE CADASTRO
-    if (screenId === 'renter-register') { loadIbgeStates(); } 
+    // CARREGA LISTA DO IBGE NO CADASTRO
+    if (screenId === 'renter-register') { loadIbgeStates('reg-renter-state'); } 
 
     const element = document.getElementById(screenId);
     if (element) {
@@ -275,8 +276,6 @@ async function renterRegister(event) {
             lat = parseFloat(geoData[0].lat);
             lng = parseFloat(geoData[0].lon);
             console.log("Geocodificação sucesso:", lat, lng);
-        } else {
-            console.log("Endereço não encontrado no mapa, usando 0,0");
         }
     } catch (e) {
         console.log("Erro ao geocodificar, seguindo sem mapa preciso.");
@@ -394,35 +393,92 @@ async function updateUserProfile(event) {
         showAlert('Atualizado!', 'success'); showScreen('user-dashboard');
     } catch (e) { showAlert(`Erro: ${e.message}`); }
 }
-function loadRenterProfile() {
+
+// Função Atualizada: Carrega Perfil com IBGE e separação de endereço
+async function loadRenterProfile() {
     if (!currentSession.isLoggedIn || !currentSession.isRenter) return;
     const r = currentSession.profile;
+    
     document.getElementById('edit-renter-name').value = r.name;
     document.getElementById('edit-renter-phone').value = r.phone;
-    document.getElementById('edit-renter-street').value = r.street;
+    
+    // Tenta separar Rua e Número da string salva no DB (ex: "Rua X, 123")
+    // Se não tiver vírgula, coloca tudo na Rua.
+    if (r.street && r.street.includes(',')) {
+        const parts = r.street.split(',');
+        // Pega a última parte como número, e o resto como rua
+        const num = parts.pop().trim(); 
+        const rua = parts.join(',').trim();
+        document.getElementById('edit-renter-street').value = rua;
+        document.getElementById('edit-renter-number').value = num;
+    } else {
+        document.getElementById('edit-renter-street').value = r.street || '';
+        document.getElementById('edit-renter-number').value = '';
+    }
+
     document.getElementById('edit-renter-neighborhood').value = r.neighborhood;
-    document.getElementById('edit-renter-city').value = r.city;
-    document.getElementById('edit-renter-state').value = r.state;
     document.getElementById('edit-renter-email').value = r.email;
+
+    // Carrega Estados e Seleciona
+    await loadIbgeStates('edit-renter-state');
+    const elState = document.getElementById('edit-renter-state');
+    elState.value = r.state; 
+
+    // Carrega Cidades (baseado no estado selecionado) e Seleciona
+    await loadIbgeCities('edit-renter-state', 'edit-renter-city');
+    document.getElementById('edit-renter-city').value = r.city;
 }
+
+// Função Atualizada: Salva Perfil com Geocodificação
 async function updateRenterProfile(event) {
     event.preventDefault();
     if (!currentSession.isLoggedIn || !currentSession.isRenter) return;
+    
+    const btn = document.getElementById('btn-edit-renter');
+    const oldText = btn.innerText;
+    btn.innerText = "Atualizando...";
+    btn.disabled = true;
+
+    const street = document.getElementById('edit-renter-street').value;
+    const number = document.getElementById('edit-renter-number').value;
+    const neighborhood = document.getElementById('edit-renter-neighborhood').value;
+    const city = document.getElementById('edit-renter-city').value;
+    const state = document.getElementById('edit-renter-state').value;
+    const fullAddressStr = `${street}, ${number}`;
+
+    // Recalcula coordenadas (Lat/Lng) se o endereço mudou
+    let lat = currentSession.profile.lat;
+    let lng = currentSession.profile.lng;
+
+    try {
+        const searchAddress = `${street}, ${number}, ${neighborhood}, ${city}, ${state}, Brazil`;
+        const geoUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchAddress)}`;
+        const geoRes = await fetch(geoUrl);
+        const geoData = await geoRes.json();
+        if (geoData && geoData.length > 0) {
+            lat = parseFloat(geoData[0].lat);
+            lng = parseFloat(geoData[0].lon);
+            console.log("Coordenadas atualizadas:", lat, lng);
+        }
+    } catch (e) { console.log("Erro ao atualizar coordenadas, mantendo anteriores."); }
+
     try {
         await databases.updateDocument(DB_ID, RENTERS_COLLECTION_ID, currentSession.profile.$id, {
             name: document.getElementById('edit-renter-name').value,
             phone: document.getElementById('edit-renter-phone').value,
-            street: document.getElementById('edit-renter-street').value,
-            neighborhood: document.getElementById('edit-renter-neighborhood').value,
-            city: document.getElementById('edit-renter-city').value,
-            state: document.getElementById('edit-renter-state').value,
-            // Mantem lat/lng do perfil atual pois a edição de perfil não tem busca automatica de mapa neste exemplo
-            lat: currentSession.profile.lat,
-            lng: currentSession.profile.lng
+            street: fullAddressStr,
+            neighborhood: neighborhood,
+            city: city,
+            state: state,
+            lat: lat,
+            lng: lng
         });
         currentSession.profile = await databases.getDocument(DB_ID, RENTERS_COLLECTION_ID, currentSession.profile.$id);
         showAlert('Atualizado!', 'success'); showScreen('renter-dashboard');
-    } catch (e) { showAlert(`Erro: ${e.message}`); }
+    } catch (e) { showAlert(`Erro: ${e.message}`); } finally {
+        btn.innerText = oldText;
+        btn.disabled = false;
+    }
 }
 
 // ======================================================
