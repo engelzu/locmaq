@@ -1,4 +1,4 @@
-// CHAVE DA API GEOAPIFY
+// CHAVE DA API GEOAPIFY (Ainda usada para o usuário buscar cidade, se mantiver essa função)
 const apiKey = '435bf07fb6d444f8a0ca1af6906f1bce';
 
 // ======================================================
@@ -114,6 +114,59 @@ async function initializeApp() {
 }
 
 // ======================================================
+// API IBGE (ESTADOS E CIDADES)
+// ======================================================
+
+async function loadIbgeStates() {
+    const select = document.getElementById('reg-renter-state');
+    if (!select) return;
+    
+    select.innerHTML = '<option value="">Carregando...</option>';
+
+    try {
+        // Busca estados direto do IBGE
+        const response = await fetch('https://servicodados.ibge.gov.br/api/v1/localidades/estados?orderBy=nome');
+        const states = await response.json();
+
+        select.innerHTML = '<option value="">Selecione o Estado</option>';
+        states.forEach(state => {
+            // Salvamos a Sigla (ex: SP) no value
+            select.innerHTML += `<option value="${state.sigla}">${state.nome}</option>`;
+        });
+    } catch (error) {
+        console.error("Erro IBGE:", error);
+        select.innerHTML = '<option value="">Erro ao carregar</option>';
+    }
+}
+
+async function loadIbgeCities() {
+    const stateSigla = document.getElementById('reg-renter-state').value;
+    const citySelect = document.getElementById('reg-renter-city');
+    
+    if (!stateSigla) {
+        citySelect.innerHTML = '<option value="">Selecione primeiro o estado...</option>';
+        citySelect.disabled = true;
+        return;
+    }
+
+    citySelect.innerHTML = '<option value="">Carregando...</option>';
+    citySelect.disabled = false;
+
+    try {
+        const response = await fetch(`https://servicodados.ibge.gov.br/api/v1/localidades/estados/${stateSigla}/municipios`);
+        const cities = await response.json();
+
+        citySelect.innerHTML = '<option value="">Selecione a Cidade</option>';
+        cities.forEach(city => {
+            citySelect.innerHTML += `<option value="${city.nome}">${city.nome}</option>`;
+        });
+    } catch (error) {
+        console.error("Erro IBGE Cidades:", error);
+        citySelect.innerHTML = '<option value="">Erro ao carregar</option>';
+    }
+}
+
+// ======================================================
 // NAVEGAÇÃO E ALERTAS
 // ======================================================
 function showScreen(screenId) {
@@ -128,6 +181,9 @@ function showScreen(screenId) {
     if (screenId === 'upgrade-plan') { highlightCurrentPlan(); }
     if (screenId === 'user-favorites') { loadFavoritesScreen(); }
     
+    // CARREGA LISTA DO IBGE SE FOR TELA DE CADASTRO
+    if (screenId === 'renter-register') { loadIbgeStates(); } 
+
     const element = document.getElementById(screenId);
     if (element) {
         element.classList.add('active');
@@ -156,20 +212,15 @@ async function userRegister(event) {
     event.preventDefault();
     const name = document.getElementById('reg-user-name').value;
     const phone = document.getElementById('reg-user-phone').value;
-    const street = document.getElementById('reg-user-street').value;
-    const neighborhood = document.getElementById('reg-user-neighborhood').value;
-    const city = document.getElementById('reg-user-city').value;
-    const state = document.getElementById('reg-user-state').value;
     const email = document.getElementById('reg-user-email').value;
     const password = document.getElementById('reg-user-password').value;
     const confirmPassword = document.getElementById('reg-user-confirm-password').value;
 
     if (password !== confirmPassword) return showAlert('As senhas não conferem.');
-    if (!street || !city || !state) return showAlert('Endereço inválido.');
 
     try {
         const authUser = await account.create(ID.unique(), email, password, name);
-        const userData = { name, phone, street, neighborhood, city, state, email, userId: authUser.$id };
+        const userData = { name, phone, email, userId: authUser.$id };
         await databases.createDocument(DB_ID, USERS_COLLECTION_ID, authUser.$id, userData);
         await account.createEmailSession(email, password);
         showAlert('Usuário cadastrado!', 'success');
@@ -179,29 +230,90 @@ async function userRegister(event) {
 
 async function renterRegister(event) {
     event.preventDefault();
+    
+    const btn = document.getElementById('btn-reg-renter');
+    const oldText = btn.innerText;
+    btn.innerText = "Processando...";
+    btn.disabled = true;
+
     const name = document.getElementById('reg-renter-name').value;
     const phone = document.getElementById('reg-renter-phone').value;
+    
+    // Dados de Endereço Manual
     const street = document.getElementById('reg-renter-street').value;
+    const number = document.getElementById('reg-renter-number').value;
     const neighborhood = document.getElementById('reg-renter-neighborhood').value;
     const city = document.getElementById('reg-renter-city').value;
     const state = document.getElementById('reg-renter-state').value;
-    const lat = parseFloat(document.getElementById('reg-renter-lat').value);
-    const lng = parseFloat(document.getElementById('reg-renter-lng').value);
+    
     const email = document.getElementById('reg-renter-email').value;
     const password = document.getElementById('reg-renter-password').value;
     const confirmPassword = document.getElementById('reg-renter-confirm-password').value;
     
-    if (password !== confirmPassword) return showAlert('As senhas não conferem.');
-    if (!street || !city || !state) return showAlert('Endereço inválido.');
+    if (password !== confirmPassword) {
+        btn.innerText = oldText; btn.disabled = false;
+        return showAlert('As senhas não conferem.');
+    }
+    
+    if (!city || !state) {
+        btn.innerText = oldText; btn.disabled = false;
+        return showAlert('Selecione Estado e Cidade.');
+    }
+
+    // --- TENTATIVA AUTOMÁTICA DE OBTER LAT/LNG (NOMINATIM GRATUITO) ---
+    let lat = 0;
+    let lng = 0;
+    
+    try {
+        const fullAddress = `${street}, ${number}, ${neighborhood}, ${city}, ${state}, Brazil`;
+        const geoUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(fullAddress)}`;
+        
+        const geoRes = await fetch(geoUrl);
+        const geoData = await geoRes.json();
+        
+        if (geoData && geoData.length > 0) {
+            lat = parseFloat(geoData[0].lat);
+            lng = parseFloat(geoData[0].lon);
+            console.log("Geocodificação sucesso:", lat, lng);
+        } else {
+            console.log("Endereço não encontrado no mapa, usando 0,0");
+        }
+    } catch (e) {
+        console.log("Erro ao geocodificar, seguindo sem mapa preciso.");
+    }
+    // ------------------------------------------------------------------
 
     try {
         const authUser = await account.create(ID.unique(), email, password, name);
-        const renterData = { name, phone, street, neighborhood, city, state, lat, lng, email, plan: 'free', renterId: authUser.$id };
+        
+        // Concatena Rua e Número para salvar no campo 'street' existente
+        const fullAddressStr = `${street}, ${number}`;
+
+        const renterData = { 
+            name, 
+            phone, 
+            street: fullAddressStr, 
+            neighborhood, 
+            city, 
+            state, 
+            lat, 
+            lng, 
+            email, 
+            plan: 'free', 
+            renterId: authUser.$id 
+        };
+
         await databases.createDocument(DB_ID, RENTERS_COLLECTION_ID, authUser.$id, renterData);
         await account.createEmailSession(email, password);
-        showAlert('Locador cadastrado!', 'success');
+        
+        showAlert('Locador cadastrado com sucesso!', 'success');
         initializeApp();
-    } catch (error) { showAlert(`Erro no cadastro: ${error.message}`); }
+    } catch (error) { 
+        showAlert(`Erro no cadastro: ${error.message}`); 
+    } finally {
+        btn.innerText = oldText;
+        btn.disabled = false;
+    }
 }
 
 async function userLogin(event) {
@@ -268,10 +380,6 @@ function loadUserProfile() {
     const u = currentSession.profile;
     document.getElementById('edit-user-name').value = u.name;
     document.getElementById('edit-user-phone').value = u.phone;
-    document.getElementById('edit-user-street').value = u.street;
-    document.getElementById('edit-user-neighborhood').value = u.neighborhood;
-    document.getElementById('edit-user-city').value = u.city;
-    document.getElementById('edit-user-state').value = u.state;
     document.getElementById('edit-user-email').value = u.email;
 }
 async function updateUserProfile(event) {
@@ -280,11 +388,7 @@ async function updateUserProfile(event) {
     try {
         await databases.updateDocument(DB_ID, USERS_COLLECTION_ID, currentSession.profile.$id, {
             name: document.getElementById('edit-user-name').value,
-            phone: document.getElementById('edit-user-phone').value,
-            street: document.getElementById('edit-user-street').value,
-            neighborhood: document.getElementById('edit-user-neighborhood').value,
-            city: document.getElementById('edit-user-city').value,
-            state: document.getElementById('edit-user-state').value
+            phone: document.getElementById('edit-user-phone').value
         });
         currentSession.profile = await databases.getDocument(DB_ID, USERS_COLLECTION_ID, currentSession.profile.$id);
         showAlert('Atualizado!', 'success'); showScreen('user-dashboard');
@@ -312,8 +416,9 @@ async function updateRenterProfile(event) {
             neighborhood: document.getElementById('edit-renter-neighborhood').value,
             city: document.getElementById('edit-renter-city').value,
             state: document.getElementById('edit-renter-state').value,
-            lat: parseFloat(document.getElementById('reg-renter-lat').value),
-            lng: parseFloat(document.getElementById('reg-renter-lng').value)
+            // Mantem lat/lng do perfil atual pois a edição de perfil não tem busca automatica de mapa neste exemplo
+            lat: currentSession.profile.lat,
+            lng: currentSession.profile.lng
         });
         currentSession.profile = await databases.getDocument(DB_ID, RENTERS_COLLECTION_ID, currentSession.profile.$id);
         showAlert('Atualizado!', 'success'); showScreen('renter-dashboard');
@@ -811,7 +916,8 @@ function clearAddressFields(prefix) {
     }
 }
 
-// --- CARREGAMENTO DINÂMICO DE ESTADO/CIDADE ---
+// --- CARREGAMENTO DINÂMICO DE ESTADO/CIDADE (USUÁRIO AINDA USA O DB POIS JÁ ESTÁ NO DB) ---
+// SE QUISER MUDAR O USUÁRIO PARA USAR IBGE TAMBÉM, BASTA CHAMAR loadIbgeStates() EM VEZ DESSA
 
 async function loadStates(selectId) {
     const select = document.getElementById(selectId);

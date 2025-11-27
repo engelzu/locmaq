@@ -60,15 +60,6 @@
                 <input type="text" id="reg-user-name" placeholder="Nome Completo" required />
                 <input type="tel" id="reg-user-phone" placeholder="Telefone" required />
                 
-                <div class="autocomplete-container">
-                    <input type="text" id="reg-user-street" placeholder="Comece a digitar sua Rua..." autocomplete="off" oninput="handleAddressInput(event, 'reg-user-streetList')" required />
-                    <div class="autocomplete-list" id="reg-user-streetList"></div>
-                </div>
-                
-                <input type="text" id="reg-user-neighborhood" placeholder="Bairro" readonly />
-                <input type="text" id="reg-user-city" placeholder="Cidade" readonly />
-                <input type="text" id="reg-user-state" placeholder="Estado" readonly />
-                
                 <input type="email" id="reg-user-email" placeholder="E-mail" required />
                 <input type="password" id="reg-user-password" placeholder="Senha" required />
                 <input type="password" id="reg-user-confirm-password" placeholder="Confirmar Senha" required />
@@ -156,15 +147,6 @@
             <form onsubmit="updateUserProfile(event)">
                 <input type="text" id="edit-user-name" placeholder="Nome Completo" required />
                 <input type="tel" id="edit-user-phone" placeholder="Telefone" required />
-                
-                <div class="autocomplete-container">
-                    <input type="text" id="edit-user-street" placeholder="Digite o novo endereço para alterar..." autocomplete="off" oninput="handleAddressInput(event, 'edit-user-streetList')" />
-                    <div class="autocomplete-list" id="edit-user-streetList"></div>
-                </div>
-
-                <input type="text" id="edit-user-neighborhood" placeholder="Bairro" readonly />
-                <input type="text" id="edit-user-city" placeholder="Cidade" readonly />
-                <input type="text" id="edit-user-state" placeholder="Estado" readonly />
                 <input type="email" id="edit-user-email" placeholder="E-mail" readonly />
                 <button type="submit" class="btn btn-primary">Atualizar Dados</button>
             </form>
@@ -196,21 +178,28 @@
                 <input type="text" id="reg-renter-name" placeholder="Nome / Empresa" required />
                 <input type="tel" id="reg-renter-phone" placeholder="Telefone" required />
 
-                 <div class="autocomplete-container">
-                    <input type="text" id="reg-renter-street" placeholder="Comece a digitar sua Rua..." autocomplete="off" oninput="handleAddressInput(event, 'reg-renter-streetList')" required />
-                    <div class="autocomplete-list" id="reg-renter-streetList"></div>
+                <div style="display: flex; gap: 10px;">
+                    <input type="text" id="reg-renter-street" placeholder="Rua / Av." style="flex: 3;" required />
+                    <input type="text" id="reg-renter-number" placeholder="Nº" style="flex: 1;" required />
                 </div>
+                
+                <input type="text" id="reg-renter-neighborhood" placeholder="Bairro" required />
 
-                <input type="text" id="reg-renter-neighborhood" placeholder="Bairro" readonly />
-                <input type="text" id="reg-renter-city" placeholder="Cidade" readonly />
-                <input type="text" id="reg-renter-state" placeholder="Estado" readonly />
-                <input type="hidden" id="reg-renter-lat" />
-                <input type="hidden" id="reg-renter-lng" />
+                <select id="reg-renter-state" onchange="loadIbgeCities()" required>
+                    <option value="">Selecione o Estado</option>
+                </select>
+
+                <select id="reg-renter-city" disabled required>
+                    <option value="">Selecione primeiro o estado...</option>
+                </select>
+
+                <input type="hidden" id="reg-renter-lat" value="0" />
+                <input type="hidden" id="reg-renter-lng" value="0" />
                 
                 <input type="email" id="reg-renter-email" placeholder="E-mail" required />
                 <input type="password" id="reg-renter-password" placeholder="Senha" required />
                 <input type="password" id="reg-renter-confirm-password" placeholder="Confirmar Senha" required />
-                <button type="submit" class="btn btn-primary">Cadastrar</button>
+                <button type="submit" id="btn-reg-renter" class="btn btn-primary">Cadastrar</button>
             </form>
         </div>
     </div>
